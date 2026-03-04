@@ -1,4 +1,5 @@
 const { chatCompletion, fastCompletion } = require('../utils/embeddings');
+const { getCurrentWeather } = require('../utils/weather');
 const { deepClean } = require('./transcriptionCleaner');
 const { detectFormsWithAI } = require('./formDetectiveAgent');
 const { extractFormData } = require('./extractionAgent');
@@ -437,6 +438,17 @@ async function generateLoginBriefing(paramedicProfile, statusData, shiftData) {
 
   const partnerInfo = shiftData?.partner_id || 'TBD';
 
+  let weatherInfo = '';
+  try {
+    const weather = await getCurrentWeather(paramedicProfile.station);
+    if (weather) {
+      const conds = weather.conditions.join(', ');
+      weatherInfo = `Real-time weather near ${paramedicProfile.station || 'station'}: ${weather.temp}°C (feels like ${weather.feelsLike}°C), ${weather.description}. ${conds.includes('ice') || conds.includes('snow') || conds.includes('freezing') ? 'Warn about icy roads and driving safely.' : 'Mention conditions briefly.'}`;
+    }
+  } catch (err) {
+    console.error('[ConversationAgent] Weather fetch failed:', err.message);
+  }
+
   const briefing = await chatCompletion([
     {
       role: 'system',
@@ -448,15 +460,16 @@ Station: ${paramedicProfile.station}
 Unit: ${paramedicProfile.unit}
 Partner: ${partnerInfo}
 Status issues: ${statusIssues.length > 0 ? statusIssues.join(', ') : 'All clear'}
+${weatherInfo ? `\nWeather (use this real data - do not invent): ${weatherInfo}\n` : '\nIf no weather data, give a generic "drive safe" or skip weather.\n'}
 
 Include:
 1. Warm greeting using first name
 2. Partner and station info
-3. Weather heads-up (mention icy roads or general conditions)
+3. Weather heads-up using the real data above (mention icy roads, snow, or conditions only if present in the data)
 4. Any compliance issues flagged naturally
 5. Ask if ready to start
 
-Keep it natural and conversational - like a friend catching you up. 3-5 sentences max.`
+Keep it natural and conversational - like a friend catching you up. 3-5 sentences max. Only mention conditions that match the actual weather data.`
     },
     { role: 'user', content: 'Generate the login briefing.' }
   ], 'gemini-3.1-flash-lite-preview', { max_tokens: 256, temperature: 0.8 });

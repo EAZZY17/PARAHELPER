@@ -1,8 +1,27 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { weatherAPI } from '../services/api';
+
+const REFRESH_INTERVAL_MS = 15 * 60 * 1000;
 
 export default function TopBar({ profile, phase, mode, alerts, onShiftSummary, onMap, onLogout }) {
   const [shiftTime, setShiftTime] = useState('00:00:00');
   const [shiftStart] = useState(Date.now());
+  const [weather, setWeather] = useState(null);
+
+  const fetchWeather = useCallback(async () => {
+    try {
+      const { data } = await weatherAPI.getCurrent();
+      setWeather(data);
+    } catch {
+      setWeather(null);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchWeather();
+    const t = setInterval(fetchWeather, REFRESH_INTERVAL_MS);
+    return () => clearInterval(t);
+  }, [fetchWeather]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -61,6 +80,15 @@ export default function TopBar({ profile, phase, mode, alerts, onShiftSummary, o
       </div>
 
       <div style={styles.right}>
+        {weather && (
+          <div style={styles.weatherBadge} title={`${weather.description} • Feels like ${weather.feelsLike}°C`}>
+            <span style={styles.weatherIcon}>
+              {weather.conditions?.some(c => /snow|ice|freezing/.test(c)) ? '❄' : weather.conditions?.some(c => /rain|drizzle|thunder/.test(c)) ? '🌧' : weather.conditions?.some(c => /cloud/.test(c)) ? '☁' : '☀'}
+            </span>
+            <span style={styles.weatherTemp}>{weather.temp}°</span>
+            <span style={styles.weatherDesc}>{weather.description}</span>
+          </div>
+        )}
         <div style={styles.shiftTimer}>
           <span style={styles.timerLabel}>SHIFT</span>
           <span style={styles.timerValue}>{shiftTime}</span>
@@ -143,6 +171,18 @@ const styles = {
     animation: 'pulse 1.5s ease-in-out infinite'
   },
   right: { display: 'flex', alignItems: 'center', gap: '16px' },
+  weatherBadge: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px',
+    padding: '6px 12px',
+    borderRadius: '10px',
+    background: 'rgba(66, 153, 225, 0.15)',
+    border: '1px solid rgba(66, 153, 225, 0.25)'
+  },
+  weatherIcon: { fontSize: '16px' },
+  weatherTemp: { fontSize: '14px', fontWeight: 700, color: '#90cdf4' },
+  weatherDesc: { fontSize: '11px', color: 'rgba(255,255,255,0.7)', maxWidth: '80px', overflow: 'hidden', textOverflow: 'ellipsis' },
   shiftTimer: { display: 'flex', flexDirection: 'column', alignItems: 'center' },
   timerLabel: { fontSize: '9px', color: 'rgba(255,255,255,0.4)', letterSpacing: '1px' },
   timerValue: { fontSize: '14px', fontWeight: 600, color: 'rgba(255,255,255,0.8)', fontFamily: 'monospace' },

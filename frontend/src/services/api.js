@@ -53,6 +53,10 @@ export const formsAPI = {
     api.get('/api/forms/teddy-bears')
 };
 
+export const weatherAPI = {
+  getCurrent: (station) => api.get('/api/weather', station ? { params: { station } } : {})
+};
+
 export const exportsAPI = {
   getStatus: (paramedic_id) =>
     api.get(`/api/paramedic/${paramedic_id}/status`),

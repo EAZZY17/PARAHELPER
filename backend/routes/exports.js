@@ -1,6 +1,7 @@
 const express = require('express');
 const authMiddleware = require('../middleware/auth');
 const { getParamedicById, getStatusReport, getShifts } = require('../utils/mongodb');
+const { getCurrentWeather } = require('../utils/weather');
 const { generateShiftSummary } = require('../agents/summarizerAgent');
 const { getMessages, getConversation } = require('../utils/mongodb');
 
@@ -37,6 +38,24 @@ router.get('/paramedic/:paramedic_id/shifts', authMiddleware, async (req, res) =
   } catch (error) {
     console.error('[Exports] Shifts error:', error);
     res.status(500).json({ error: 'Could not fetch shifts' });
+  }
+});
+
+router.get('/weather', authMiddleware, async (req, res) => {
+  try {
+    const station = req.paramedic?.station || req.query.station;
+    const weather = await getCurrentWeather(station);
+    if (!weather) return res.status(503).json({ error: 'Weather unavailable' });
+    res.json({
+      temp: weather.temp,
+      feelsLike: weather.feelsLike,
+      description: weather.description,
+      conditions: weather.conditions,
+      updatedAt: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('[Weather] Route error:', error);
+    res.status(500).json({ error: 'Could not fetch weather' });
   }
 });
 
