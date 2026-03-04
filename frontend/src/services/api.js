@@ -44,7 +44,7 @@ export const chatAPI = {
 
 export const formsAPI = {
   submit: (form_type, form_data, session_id) =>
-    api.post('/api/forms/submit', { form_type, form_data, session_id }),
+    api.post('/api/forms/submit', { form_type, form_data, session_id }, { timeout: 120000 }),
   guardrailCheck: (form_type, form_data) =>
     api.post('/api/forms/guardrail-check', { form_type, form_data }),
   getOccurrenceReports: () =>

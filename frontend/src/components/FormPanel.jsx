@@ -396,30 +396,47 @@ export default function FormPanel({ currentForms, guardrailResults, sessionId, p
     }
   }, [formTypes, activeTab]);
 
-  const handleSubmit = async (formTypeOverride) => {
+  const handleSubmit = async (formTypeOverride, retryCount = 0) => {
     const formType = formTypeOverride || activeTab;
     if (!formType || submitting) return;
     if (!currentForms[formType]) return;
-    setSubmitting(true);
     setSubmitResult(null);
     if (formType !== activeTab) setActiveTab(formType);
+    setSubmitting(true);
 
     try {
       const { data } = await formsAPI.submit(formType, currentForms[formType], sessionId);
-      setSubmitResult({ success: true, message: data.message || 'Sent!' });
+      const emailOk = data.export_result?.emailResult?.success !== false;
+      const msg = emailOk
+        ? (data.message || 'Form submitted! Email sent to recipient.')
+        : 'Form saved, but email delivery failed. Check GMAIL_APP_PASSWORD and FORM_RECIPIENT_EMAIL on backend.';
+      setSubmitResult({ success: emailOk, message: msg });
       setLastExportResult(data.export_result || null);
       if (onFormSubmit) onFormSubmit(formType, data);
     } catch (err) {
       const errData = err.response?.data;
       const status = err.response?.status;
+      const isNetworkError = !err.response;
+      const canRetry = isNetworkError && retryCount < 1;
+
+      if (canRetry) {
+        setSubmitResult({ success: false, message: 'Connecting... retrying in 3 seconds.' });
+        setSubmitting(false);
+        setTimeout(() => handleSubmit(formTypeOverride, retryCount + 1), 3000);
+        return;
+      }
+
       let msg = errData?.guardrail
         ? `Please fix: ${(errData.guardrail.issues || []).slice(0, 3).map(i => i.message).join('; ')}`
         : errData?.error || err.message || 'Submission failed.';
-      if (status === 500 && msg) msg += ' (Check backend logs on Render for details.)';
-      if (!err.response && err.message) msg = `Network error: ${err.message}. Is the backend running?`;
+      if (status === 500 && msg) msg += ' (Check backend logs for details.)';
+      if (isNetworkError) {
+        msg = `Could not reach server. ${err.code === 'ECONNABORTED' ? 'Request timed out—backend may be waking (Render). ' : ''}Please try again.`;
+      }
       setSubmitResult({ success: false, message: msg });
+    } finally {
+      setSubmitting(false);
     }
-    setSubmitting(false);
   };
 
   React.useEffect(() => {
