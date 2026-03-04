@@ -411,9 +411,12 @@ export default function FormPanel({ currentForms, guardrailResults, sessionId, p
       if (onFormSubmit) onFormSubmit(formType, data);
     } catch (err) {
       const errData = err.response?.data;
-      const msg = errData?.guardrail
+      const status = err.response?.status;
+      let msg = errData?.guardrail
         ? `Please fix: ${(errData.guardrail.issues || []).slice(0, 3).map(i => i.message).join('; ')}`
-        : errData?.error || 'Submission failed. Please try again.';
+        : errData?.error || err.message || 'Submission failed.';
+      if (status === 500 && msg) msg += ' (Check backend logs on Render for details.)';
+      if (!err.response && err.message) msg = `Network error: ${err.message}. Is the backend running?`;
       setSubmitResult({ success: false, message: msg });
     }
     setSubmitting(false);

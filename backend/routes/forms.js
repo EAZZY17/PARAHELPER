@@ -13,6 +13,14 @@ router.post('/submit', authMiddleware, async (req, res) => {
     const { form_type, form_data, session_id } = req.body;
     const paramedicId = req.paramedic.paramedic_id;
 
+    if (!form_type || !form_data) {
+      return res.status(400).json({ error: 'form_type and form_data are required' });
+    }
+    const dataToCheck = form_data.fields || form_data;
+    if (!dataToCheck || typeof dataToCheck !== 'object') {
+      return res.status(400).json({ error: 'form_data must contain fields object' });
+    }
+
     console.log(`[Forms] Submitting ${form_type} from ${req.paramedic.first_name}`);
 
     const guardrailResult = await runGuardrailCheck(form_type, form_data);
@@ -23,9 +31,16 @@ router.post('/submit', authMiddleware, async (req, res) => {
       });
     }
 
-    const paramedic = (await getParamedicById(paramedicId)) || req.paramedic;
-    let exportResult;
+    let paramedic;
+    try {
+      paramedic = (await getParamedicById(paramedicId)) || req.paramedic;
+    } catch (e) {
+      console.error('[Forms] getParamedicById error:', e);
+      return res.status(500).json({ error: 'Could not load paramedic profile.' });
+    }
 
+    let exportResult;
+    try {
     if (form_type === 'occurrence_report') {
       const report = {
         occurrence_id: `OCC-${uuidv4().substring(0, 8)}`,
@@ -76,6 +91,11 @@ router.post('/submit', authMiddleware, async (req, res) => {
     } else {
       return res.status(400).json({ error: 'Unknown form type' });
     }
+    } catch (exportError) {
+      console.error('[Forms] Save/export error:', exportError);
+      const msg = exportError.message || 'Form save or export failed.';
+      return res.status(500).json({ error: msg });
+    }
 
     res.json({
       success: true,
@@ -85,7 +105,8 @@ router.post('/submit', authMiddleware, async (req, res) => {
     });
   } catch (error) {
     console.error('[Forms] Submit error:', error);
-    res.status(500).json({ error: 'Form submission failed. Let me try again.' });
+    const msg = error.message || 'Form submission failed.';
+    res.status(500).json({ error: msg });
   }
 });
 

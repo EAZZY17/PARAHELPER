@@ -10,13 +10,14 @@ function getTransporter() {
 
   // Gmail SMTP - reliable for demos (use App Password with 2FA)
   if (process.env.GMAIL_USER && process.env.GMAIL_APP_PASSWORD) {
+    const pass = String(process.env.GMAIL_APP_PASSWORD).replace(/\s/g, ''); // strip spaces from app password
     transporter = nodemailer.createTransport({
       host: 'smtp.gmail.com',
       port: 587,
       secure: false,
       auth: {
-        user: process.env.GMAIL_USER,
-        pass: process.env.GMAIL_APP_PASSWORD
+        user: process.env.GMAIL_USER.trim(),
+        pass
       }
     });
     console.log(`[Email] Using Gmail SMTP (${process.env.GMAIL_USER})`);
