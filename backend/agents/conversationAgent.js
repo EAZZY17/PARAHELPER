@@ -357,7 +357,7 @@ Tell the user the recommended hospital is fastest given current traffic. Open th
 
   let aiResponse;
   try {
-    aiResponse = await chatCompletion(conversationMessages, 'gemini-2.5-flash', {
+    aiResponse = await chatCompletion(conversationMessages, 'gemini-3.1-flash-lite-preview', {
       max_tokens: 1024,
       temperature: 0.8
     });
@@ -459,7 +459,7 @@ Include:
 Keep it natural and conversational - like a friend catching you up. 3-5 sentences max.`
     },
     { role: 'user', content: 'Generate the login briefing.' }
-  ], 'gemini-2.5-flash', { max_tokens: 256, temperature: 0.8 });
+  ], 'gemini-3.1-flash-lite-preview', { max_tokens: 256, temperature: 0.8 });
 
   return briefing;
 }

@@ -67,7 +67,7 @@ Return JSON only: {"ready": true/false, "reason": "brief reason"}
     const raw = await chatCompletion([
       { role: 'system', content: 'Return only valid JSON.' },
       { role: 'user', content: prompt }
-    ], 'gemini-2.5-flash', { max_tokens: 64, temperature: 0 });
+    ], 'gemini-3.1-flash-lite-preview', { max_tokens: 64, temperature: 0 });
     const parsed = JSON.parse((raw || '{}').replace(/```json?\s*|\s*```/g, '').trim());
     return parsed.ready === true;
   } catch (e) {
@@ -131,7 +131,7 @@ ${fullContext}
 Return ONLY the email body text. Include size, items, dates - whatever the user provided.`
       },
       { role: 'user', content: 'Generate the email from the conversation above.' }
-    ], 'gemini-2.5-flash', { max_tokens: 256 });
+    ], 'gemini-3.1-flash-lite-preview', { max_tokens: 256 });
 
     const emailBody = (typeof emailBodyRaw === 'string' && emailBodyRaw.trim()) ? emailBodyRaw : `Request from ${paramedicProfile.first_name} ${paramedicProfile.last_name}:\n${fullContext}`;
 

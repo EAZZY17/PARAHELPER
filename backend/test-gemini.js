@@ -15,7 +15,7 @@ const { chatCompletion } = require('./utils/embeddings');
 
 chatCompletion(
   [{ role: 'user', content: 'Say "ParaHelper works!" in exactly 5 words.' }],
-  'gemini-2.5-flash',
+  'gemini-3.1-flash-lite-preview',
   { max_tokens: 32 }
 )
   .then((text) => {

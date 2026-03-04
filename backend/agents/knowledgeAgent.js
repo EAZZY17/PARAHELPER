@@ -110,7 +110,7 @@ Rules:
 - Return ONLY the answer text, no formatting markers`
     },
     { role: 'user', content: question }
-  ], 'gemini-2.5-flash', { max_tokens: 256 });
+  ], 'gemini-3.1-flash-lite-preview', { max_tokens: 256 });
 
   return { answer, knowledgeUsed: knowledge.results.length > 0, source: knowledge.source };
 }

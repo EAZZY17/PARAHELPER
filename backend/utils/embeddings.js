@@ -31,7 +31,7 @@ async function getEmbedding(text) {
   return result.embeddings[0].values;
 }
 
-async function chatCompletion(messages, model = 'gemini-2.5-flash', options = {}) {
+async function chatCompletion(messages, model = 'gemini-3.1-flash-lite-preview', options = {}) {
   if (!ai) throw new Error('GOOGLE_GEMINI_API_KEY is required');
   const { contents, systemInstruction } = toGeminiContents(messages);
 
@@ -42,7 +42,7 @@ async function chatCompletion(messages, model = 'gemini-2.5-flash', options = {}
   };
 
   const response = await ai.models.generateContent({
-    model: model.replace(/^google\//, '').replace(/-001$/, '') || 'gemini-2.5-flash',
+    model: model.replace(/^google\//, '').replace(/-001$/, '') || 'gemini-3.1-flash-lite-preview',
     contents,
     config
   });
@@ -51,7 +51,7 @@ async function chatCompletion(messages, model = 'gemini-2.5-flash', options = {}
 }
 
 async function fastCompletion(messages, options = {}) {
-  return chatCompletion(messages, 'gemini-2.5-flash', { ...options, max_tokens: options.max_tokens ?? 512 });
+  return chatCompletion(messages, 'gemini-3.1-flash-lite-preview', { ...options, max_tokens: options.max_tokens ?? 512 });
 }
 
 module.exports = { chatCompletion, getEmbedding, fastCompletion };
