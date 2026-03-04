@@ -1,11 +1,14 @@
 require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') });
 
-// Verify Gemini API key is set
+// Verify at least one AI provider is configured
 const geminiKey = process.env.GOOGLE_GEMINI_API_KEY || process.env.GEMINI_API_KEY;
-if (!geminiKey || geminiKey.length < 10) {
-  console.warn('[Server] WARNING: GOOGLE_GEMINI_API_KEY not set or invalid in .env - AI features will fail');
-} else {
+const openRouterKey = process.env.OPENROUTER_API_KEY;
+if (openRouterKey) {
+  console.log('[Server] OpenRouter API key loaded (chat + embeddings)');
+} else if (geminiKey && geminiKey.length >= 10) {
   console.log('[Server] Gemini API key loaded');
+} else {
+  console.warn('[Server] WARNING: Set OPENROUTER_API_KEY or GOOGLE_GEMINI_API_KEY - AI features will fail');
 }
 
 const express = require('express');
