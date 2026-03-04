@@ -7,7 +7,7 @@ import CrisisIndicator from './components/CrisisIndicator';
 import ShiftSummary from './components/ShiftSummary';
 import MapView from './components/MapView';
 import useParaHelper from './hooks/useParaHelper';
-import { chatAPI } from './services/api';
+import { chatAPI, healthAPI } from './services/api';
 
 const globalStyles = `
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -49,6 +49,10 @@ export default function App() {
       if (data?.triggerAutoSubmit) setPendingAutoSubmit(data.triggerAutoSubmit);
     }
   });
+
+  useEffect(() => {
+    healthAPI.ping().catch(() => {}); // Wake Render backend on app load
+  }, []);
 
   useEffect(() => {
     const token = localStorage.getItem('parahelper_token');

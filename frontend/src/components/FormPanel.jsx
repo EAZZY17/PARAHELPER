@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { formsAPI } from '../services/api';
+import { formsAPI, healthAPI } from '../services/api';
 
 const CONFIDENCE_COLORS = {
   high: { bg: 'rgba(72, 187, 120, 0.15)', border: '#48bb78', text: '#68d391' },
@@ -431,9 +431,9 @@ export default function FormPanel({ currentForms, guardrailResults, sessionId, p
         : errData?.error || err.message || 'Submission failed.';
       if (status === 500 && msg) msg += ' (Check backend logs for details.)';
       if (isNetworkError) {
-        msg = `Could not reach server. ${err.code === 'ECONNABORTED' ? 'Request timed out—backend may be waking (Render). ' : ''}Please try again.`;
+        msg = `Could not reach server. ${err.code === 'ECONNABORTED' ? 'Request timed out—backend may be waking (Render). ' : ''}Click "Wake server & retry" below.`;
       }
-      setSubmitResult({ success: false, message: msg });
+      setSubmitResult({ success: false, message: msg, isNetworkError });
     } finally {
       setSubmitting(false);
     }
@@ -469,6 +469,20 @@ export default function FormPanel({ currentForms, guardrailResults, sessionId, p
 
   const guardrail = activeTab ? guardrailResults[activeTab] : null;
   const canSubmit = guardrail?.passed && activeTab !== 'shift_report';
+
+  const handleWakeAndRetry = async () => {
+    setSubmitResult({ success: false, message: 'Waking server... please wait up to 60 seconds.', isNetworkError: true });
+    setSubmitting(true);
+    try {
+      await healthAPI.ping();
+      setSubmitResult({ success: false, message: 'Server ready. Submitting now...', isNetworkError: true });
+      setSubmitting(false);
+      await handleSubmit(activeTab, 999);
+    } catch (e) {
+      setSubmitResult({ success: false, message: 'Server still not responding. Try again in a minute.', isNetworkError: true });
+      setSubmitting(false);
+    }
+  };
 
   if (formTypes.length === 0) {
     return (
@@ -582,6 +596,21 @@ export default function FormPanel({ currentForms, guardrailResults, sessionId, p
               style={styles.downloadButton}
             >
               Download your copy
+            </button>
+          )}
+          {submitResult?.isNetworkError && !submitResult?.success && (
+            <button
+              onClick={handleWakeAndRetry}
+              disabled={submitting}
+              style={{
+                ...styles.submitButton,
+                marginBottom: '8px',
+                background: 'rgba(90, 150, 255, 0.2)',
+                borderColor: 'rgba(90, 150, 255, 0.6)',
+                color: '#90cdf4'
+              }}
+            >
+              {submitting ? 'Waking server...' : 'Wake server & retry'}
             </button>
           )}
           <button

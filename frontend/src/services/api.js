@@ -27,6 +27,10 @@ api.interceptors.response.use(
   }
 );
 
+export const healthAPI = {
+  ping: () => api.get('/api/health', { timeout: 90000 })
+};
+
 export const authAPI = {
   login: (badge_number) => api.post('/api/auth/login', { badge_number })
 };
