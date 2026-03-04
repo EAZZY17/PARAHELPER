@@ -5,6 +5,8 @@ const { sendFormEmail } = require('../utils/email');
 const { saveExport } = require('../utils/mongodb');
 const { v4: uuidv4 } = require('uuid');
 
+const FORM_RECIPIENT_EMAIL = process.env.FORM_RECIPIENT_EMAIL || 'Hillsidesplc@gmail.com';
+
 async function exportOccurrenceReport(formData, paramedicProfile) {
   console.log('[ExportAgent] Generating Occurrence Report PDF...');
 
@@ -127,7 +129,7 @@ async function exportOccurrenceReport(formData, paramedicProfile) {
   const fileName = `OccurrenceReport_${paramedicProfile.badge_number}_${Date.now()}.pdf`;
 
   const emailResult = await sendFormEmail({
-    to: 'team01@effectiveai.net',
+    to: FORM_RECIPIENT_EMAIL,
     subject: `[ParaHelper] Occurrence Report - Unit ${paramedicProfile.unit} - ${fields.date?.value || new Date().toLocaleDateString()}`,
     body: `Occurrence Report submitted by ${paramedicProfile.first_name} ${paramedicProfile.last_name} (${paramedicProfile.badge_number}).\n\nType: ${fields.occurrence_type?.value}\nSeverity: ${fields.severity?.value}\nLocation: ${fields.location?.value}, ${fields.city?.value}\n\nPlease find the PDF attached.`,
     attachments: [{ filename: fileName, content: pdfBuffer }]
@@ -139,7 +141,7 @@ async function exportOccurrenceReport(formData, paramedicProfile) {
     paramedic_id: paramedicProfile.paramedic_id,
     file_type: 'pdf',
     file_name: fileName,
-    email_sent_to: 'team01@effectiveai.net',
+    email_sent_to: FORM_RECIPIENT_EMAIL,
     email_status: emailResult.success ? 'sent' : 'failed',
     sent_at: new Date(),
     retry_count: 0
@@ -266,7 +268,7 @@ async function exportTeddyBear(formData, paramedicProfile) {
   const xmlName = `TeddyBear_${paramedicProfile.badge_number}_${Date.now()}.xml`;
 
   const emailResult = await sendFormEmail({
-    to: 'team01@effectiveai.net',
+    to: FORM_RECIPIENT_EMAIL,
     subject: `[ParaHelper] Teddy Bear Tracking - Unit ${paramedicProfile.unit} - ${fields.date_time?.value || new Date().toLocaleDateString()}`,
     body: `Teddy Bear Tracking Form submitted by ${paramedicProfile.first_name} ${paramedicProfile.last_name}.\n\nRecipient: ${fields.recipient_type?.value}, Age ${fields.recipient_age?.value}\n\nPDF and XML attached.`,
     attachments: [
@@ -281,7 +283,7 @@ async function exportTeddyBear(formData, paramedicProfile) {
     paramedic_id: paramedicProfile.paramedic_id,
     file_type: 'pdf+xml',
     file_name: `${pdfName}, ${xmlName}`,
-    email_sent_to: 'team01@effectiveai.net',
+    email_sent_to: FORM_RECIPIENT_EMAIL,
     email_status: emailResult.success ? 'sent' : 'failed',
     sent_at: new Date(),
     retry_count: 0
@@ -371,7 +373,7 @@ async function exportStatusReport(formData, paramedicProfile) {
   const fileName = `StatusReport_${paramedicProfile.badge_number}_${Date.now()}.docx`;
 
   const emailResult = await sendFormEmail({
-    to: paramedicProfile.email || 'team01@effectiveai.net',
+    to: FORM_RECIPIENT_EMAIL,
     subject: `[ParaHelper] Status Report - ${paramedicProfile.first_name} ${paramedicProfile.last_name} - ${new Date().toLocaleDateString()}`,
     body: `Paramedic Status Report for ${paramedicProfile.first_name} ${paramedicProfile.last_name}.\n\nPlease review the attached Word document.`,
     attachments: [{ filename: fileName, content: buffer }]
@@ -487,8 +489,29 @@ async function exportVehicleInspection(formData, paramedicProfile) {
 
   const pdfBuffer = Buffer.from(doc.output('arraybuffer'));
   const fileName = `VehicleInspection_${paramedicProfile.badge_number}_${Date.now()}.pdf`;
+
+  const emailResult = await sendFormEmail({
+    to: FORM_RECIPIENT_EMAIL,
+    subject: `[ParaHelper] Vehicle Inspection - Unit ${paramedicProfile.unit} - ${fields.date?.value || new Date().toLocaleDateString()}`,
+    body: `Vehicle Inspection submitted by ${paramedicProfile.first_name} ${paramedicProfile.last_name} (${paramedicProfile.badge_number}).\n\nUnit: ${fields.unit_number?.value}\nStation: ${fields.station_location?.value}\n\nPlease find the PDF attached.`,
+    attachments: [{ filename: fileName, content: pdfBuffer }]
+  });
+
+  const exportRecord = {
+    export_id: `EXP-${uuidv4().substring(0, 8)}`,
+    form_id: formData.inspection_id || `VEH-${uuidv4().substring(0, 8)}`,
+    paramedic_id: paramedicProfile.paramedic_id,
+    file_type: 'pdf',
+    file_name: fileName,
+    email_sent_to: FORM_RECIPIENT_EMAIL,
+    email_status: emailResult.success ? 'sent' : 'failed',
+    sent_at: new Date(),
+    retry_count: 0
+  };
+  await saveExport(exportRecord);
+
   console.log(`[ExportAgent] Vehicle Inspection exported: ${fileName}`);
-  return { success: true, fileName, pdfBase64: pdfBuffer.toString('base64') };
+  return { success: true, fileName, emailResult, pdfBase64: pdfBuffer.toString('base64') };
 }
 
 async function exportEquipmentInventory(formData, paramedicProfile) {
@@ -566,8 +589,29 @@ async function exportEquipmentInventory(formData, paramedicProfile) {
 
   const pdfBuffer = Buffer.from(doc.output('arraybuffer'));
   const fileName = `EquipmentInventory_${paramedicProfile.badge_number}_${Date.now()}.pdf`;
+
+  const emailResult = await sendFormEmail({
+    to: FORM_RECIPIENT_EMAIL,
+    subject: `[ParaHelper] Equipment Inventory - Unit ${paramedicProfile.unit} - ${fields.date?.value || new Date().toLocaleDateString()}`,
+    body: `Equipment Inventory submitted by ${paramedicProfile.first_name} ${paramedicProfile.last_name} (${paramedicProfile.badge_number}).\n\nUnit: ${fields.ambulance_unit?.value}\n\nPlease find the PDF attached.`,
+    attachments: [{ filename: fileName, content: pdfBuffer }]
+  });
+
+  const exportRecord = {
+    export_id: `EXP-${uuidv4().substring(0, 8)}`,
+    form_id: formData.inventory_id || `EQP-${uuidv4().substring(0, 8)}`,
+    paramedic_id: paramedicProfile.paramedic_id,
+    file_type: 'pdf',
+    file_name: fileName,
+    email_sent_to: FORM_RECIPIENT_EMAIL,
+    email_status: emailResult.success ? 'sent' : 'failed',
+    sent_at: new Date(),
+    retry_count: 0
+  };
+  await saveExport(exportRecord);
+
   console.log(`[ExportAgent] Equipment Inventory exported: ${fileName}`);
-  return { success: true, fileName, pdfBase64: pdfBuffer.toString('base64') };
+  return { success: true, fileName, emailResult, pdfBase64: pdfBuffer.toString('base64') };
 }
 
 module.exports = { exportOccurrenceReport, exportTeddyBear, exportStatusReport, exportVehicleInspection, exportEquipmentInventory };

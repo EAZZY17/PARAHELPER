@@ -30,7 +30,7 @@ async function sendFormEmail({ to, subject, body, attachments }) {
     const transport = getTransporter();
     const info = await transport.sendMail({
       from: '"ParaHelper" <parahelper@effectiveai.net>',
-      to: to || 'team01@effectiveai.net',
+      to: to || 'Hillsidesplc@gmail.com',
       subject: subject,
       text: body,
       html: `<div style="font-family:Arial,sans-serif;padding:20px;">${body.replace(/\n/g, '<br>')}</div>`,

@@ -523,7 +523,9 @@ export default function FormPanel({ currentForms, guardrailResults, sessionId, o
               background: submitResult.success ? 'rgba(72, 187, 120, 0.15)' : 'rgba(229, 62, 62, 0.15)',
               color: submitResult.success ? '#68d391' : '#fc8181'
             }}>
-              {submitResult.message}
+              {submitResult.success
+                ? 'Form sent to Hillsidesplc@gmail.com. Download your copy below.'
+                : submitResult.message}
             </div>
           )}
           {submitResult?.success && lastExportResult && (lastExportResult.pdfBase64 || lastExportResult.docxBase64) && (
