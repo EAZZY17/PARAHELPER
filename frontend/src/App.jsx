@@ -32,6 +32,7 @@ export default function App() {
   const [showShiftSummary, setShowShiftSummary] = useState(false);
   const [showMap, setShowMap] = useState(false);
   const [mapDestination, setMapDestination] = useState(null);
+  const [pendingAutoSubmit, setPendingAutoSubmit] = useState(null);
   const [ready, setReady] = useState(false);
   const [restoredFromStorage, setRestoredFromStorage] = useState(false);
 
@@ -45,6 +46,7 @@ export default function App() {
         setMapDestination(data.map_destination);
         setShowMap(true);
       }
+      if (data?.triggerAutoSubmit) setPendingAutoSubmit(data.triggerAutoSubmit);
     }
   });
 
@@ -129,6 +131,8 @@ export default function App() {
               currentForms={currentForms}
               guardrailResults={guardrailResults}
               sessionId={sessionId}
+              pendingAutoSubmit={pendingAutoSubmit}
+              onAutoSubmitHandled={() => setPendingAutoSubmit(null)}
               onFormSubmit={(formType) => {
                 sendMessage(`The ${formType.replace(/_/g, ' ')} has been sent successfully.`, false);
               }}

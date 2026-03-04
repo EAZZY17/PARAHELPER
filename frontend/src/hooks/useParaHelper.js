@@ -43,6 +43,7 @@ export default function useParaHelper(options = {}) {
         setCurrentForms(prev => ({ ...prev, ...data.form_update }));
       }
       if (data.guardrail_results) setGuardrailResults(data.guardrail_results);
+      if (onChatResponse) onChatResponse({ ...data, ...(data.auto_submit_form && { triggerAutoSubmit: data.auto_submit_form }) });
       if (data.alerts) setAlerts(data.alerts);
       if (data.phase) setPhase(data.phase);
       if (data.mode) setMode(data.mode);

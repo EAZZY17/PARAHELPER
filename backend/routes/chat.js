@@ -135,6 +135,7 @@ router.post('/message', authMiddleware, async (req, res) => {
       map_destination: result.mapDestination,
       audio_url: audioUrl,
       form_update: result.formUpdates,
+      auto_submit_form: result.autoSubmitForm,
       guardrail_results: result.guardrailResults,
       alerts: [...(result.alerts || []), ...(fatigueAlert ? [{ type: 'fatigue', message: fatigueAlert }] : [])],
       phase: state.phase,

@@ -89,6 +89,31 @@ function extractPatterns(text, formType) {
   if (formType === 'teddy_bear') {
     const ageMatch = text.match(/(\d+)\s*(?:year|yr)s?\s*old|(?:age|aged)\s*(\d+)|(\d+)\s*yo\b/i);
     if (ageMatch) out.recipient_age = { value: ageMatch[1] || ageMatch[2] || ageMatch[3], confidence: 'high' };
+    // Location: same patterns as occurrence - "at X", "in X", "Highway X", address
+    const highwayMatch = text.match(/[Hh]ighway\s+(\d+[A-Za-z]*(?:\s+(?:East|West|North|South))?)/i);
+    if (highwayMatch) {
+      const loc = 'Highway ' + highwayMatch[1];
+      if (loc.length > 2 && loc.length < 80) out.location = { value: loc, confidence: 'high' };
+    } else {
+      const locMatch = text.match(/(?:at|in|location(?: is)?)\s+(?:the\s+)?([^.?!,]+?)(?:\s+lot|\s+station|\.|,|$)/i)
+        || text.match(/(?:happened at|occurred at|we were at|scene was)\s+([^.?!]+?)(?:\.|$)/i)
+        || text.match(/(\d+\s+[A-Za-z]+(?:\s+[A-Za-z]+)*(?:\s+(?:Street|St|Road|Rd|Avenue|Ave|Drive|Dr|Lane|Ln|Court|Ct)))/i);
+      if (locMatch) {
+        const loc = (locMatch[1] || locMatch[0]).replace(/^(?:the|a|an)\s+/i, '').trim();
+        if (loc.length > 2 && loc.length < 120 && !/^(?:previous|latest|conversation|message)$/i.test(loc)) {
+          out.location = { value: loc, confidence: 'high' };
+        }
+      }
+    }
+    // City for teddy bear
+    const cityOfMatch = text.match(/(?:in the )?city of\s+([A-Za-z]+(?:\s+[A-Za-z]+)?)/i);
+    if (cityOfMatch) {
+      const city = cityOfMatch[1].trim();
+      if (city.length > 1 && city.length < 50) out.city = { value: city, confidence: 'high' };
+    } else {
+      const cityMatch = text.match(/\b(Toronto|Vaughan|Scarborough|Brampton|Mississauga|Hamilton|Ottawa|Markham|Huntsville|Barrie|Bracebridge|Gravenhurst|Orillia|Midland|Collingwood)\b/i);
+      if (cityMatch) out.city = { value: cityMatch[1], confidence: 'high' };
+    }
   }
 
   if (formType === 'vehicle_inventory' || formType === 'equipment_inventory') {
@@ -270,7 +295,7 @@ Rules:
 - severity: low/medium/high
 - injuries_reported, equipment_damage: yes/no
 - IMPORTANT: Combine info from ALL messages in the conversation. If user said "2pm" in one message and "March 3rd" in another, use both.
-- For occurrence forms: location = the physical place (e.g. "Highway 401 West", "123 Main St", "corner of X and Y"). city = the city name only (e.g. "Toronto", "Vaughan"). NEVER use "Previous conversation", "Latest message", or any instruction/meta text as values.
+- For occurrence and teddy_bear forms: location = the physical place (e.g. "Highway 401 West", "123 Main St", "corner of X and Y", "at the station", "Scarborough General Hospital"). city = the city name only (e.g. "Toronto", "Vaughan"). NEVER use "Previous conversation", "Latest message", or any instruction/meta text as values.
 - For vehicle_inventory: engine_condition, fuel_level, tire_pressure, emergency_lights, siren_system, radio_communication, gps_navigation, ambulance_cleanliness use "OK" or "Issue"/"Low"/"Not Working"/"Needs Cleaning" as appropriate. stretcher, suction_device, defibrillator, first_aid_kit: "OK" or "Issue". oxygen_tank_level: "Full" or "Low" or percentage like "60%".
 - For equipment_inventory: oxygen_masks, iv_kits, bandages, gloves, saline_bags, epinephrine, tourniquets, trauma_dressings: use quantity and status "OK"/"Low Stock"/"Missing"/"Expired".
 

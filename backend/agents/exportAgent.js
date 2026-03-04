@@ -18,23 +18,20 @@ async function exportOccurrenceReport(formData, paramedicProfile) {
   const maxWidth = 95;
   let y = 20;
 
-  const accentR = 229; const accentG = 62; const accentB = 62; // #e53e3e
-
-  // Form header (matches app: icon area + title + subtitle)
-  doc.setFillColor(255, 240, 240); // light red tint
-  doc.roundedRect(margin, y - 6, 44, 22, 3, 3, 'F');
-  doc.setDrawColor(accentR, accentG, accentB);
-  doc.setLineWidth(0.5);
-  doc.roundedRect(margin, y - 6, 44, 22, 3, 3, 'S');
+  // EMS-style header
+  doc.setFillColor(70, 80, 95);
+  doc.rect(0, 0, 210, 36, 'F');
   doc.setFontSize(16);
   doc.setFont('helvetica', 'bold');
-  doc.setTextColor(40, 40, 40);
-  doc.text('Occurrence Report', margin + 50, y + 2);
+  doc.setTextColor(255, 255, 255);
+  doc.text('EMS Occurrence Report', 105, 14, { align: 'center' });
   doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
-  doc.setTextColor(100, 100, 100);
-  doc.text('Incident Documentation', margin + 50, y + 10);
-  y += 28;
+  doc.text('Emergency Medical Services — Incident Documentation', 105, 24, { align: 'center' });
+  doc.setFontSize(8);
+  doc.setTextColor(200, 200, 210);
+  doc.text('Document any issue, call related or non-call related', 105, 31, { align: 'center' });
+  y = 48;
 
   const addSection = (label) => {
     doc.setDrawColor(220, 220, 220);
@@ -158,82 +155,81 @@ async function exportTeddyBear(formData, paramedicProfile) {
   const fields = formData.fields || {};
   const doc = new jsPDF();
   const margin = 20;
-  const labelX = margin;
-  const valueX = 85;
-  const maxWidth = 95;
   let y = 20;
 
-  const accentR = 66; const accentG = 153; const accentB = 225; // #4299e1 blue
-
-  // Form header (matches app: blue icon + title + subtitle)
-  doc.setFillColor(235, 245, 255); // light blue tint
-  doc.roundedRect(margin, y - 6, 44, 22, 3, 3, 'F');
-  doc.setDrawColor(accentR, accentG, accentB);
-  doc.setLineWidth(0.5);
-  doc.roundedRect(margin, y - 6, 44, 22, 3, 3, 'S');
-  doc.setFontSize(16);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(40, 40, 40);
-  doc.text('Teddy Bear Tracking', margin + 50, y + 2);
-  doc.setFontSize(10);
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(100, 100, 100);
-  doc.text('Comfort Item Record', margin + 50, y + 10);
-  y += 28;
-
   const addSection = (label) => {
-    doc.setDrawColor(220, 220, 220);
+    doc.setDrawColor(200, 200, 200);
     doc.setLineWidth(0.3);
     doc.line(margin, y, 190, y);
-    y += 4;
-    doc.setFontSize(9);
+    y += 6;
+    doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
-    doc.setTextColor(100, 100, 100);
-    doc.text(label.toUpperCase(), margin, y + 3);
-    y += 12;
+    doc.setTextColor(60, 60, 60);
+    doc.text(label, margin, y + 3);
+    y += 14;
   };
 
-  const addField = (label, value, required = false) => {
+  const addField = (label, value) => {
     const v = value != null && value !== '' ? String(value) : '—';
-    doc.setFontSize(11);
+    doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(80, 80, 80);
-    doc.text(`${label}${required ? ' *' : ''}`, labelX, y + 4);
-    doc.setFillColor(248, 248, 250);
-    doc.setDrawColor(230, 230, 235);
-    doc.roundedRect(valueX - 2, y - 3, 105, 10, 2, 2, 'FD');
+    doc.text(label, margin, y + 5);
+    doc.setFillColor(252, 252, 254);
+    doc.setDrawColor(220, 220, 228);
+    doc.rect(margin, y + 6, 170, 12, 'FD');
     doc.setTextColor(40, 40, 40);
-    doc.text(v, valueX + 101, y + 4, { align: 'right', maxWidth: 99 });
-    y += 12;
+    doc.text(v, margin + 5, y + 15);
+    y += 22;
     if (y > 270) { doc.addPage(); y = 20; }
   };
 
-  addSection('EVENT DETAILS');
-  addField('Date & Time', fields.date_time?.value, true);
-  addField('Unit', fields.unit_id?.value);
-  addField('Location', fields.location?.value);
-  addField('City', fields.city?.value);
-  addField('Province', fields.province?.value);
+  // Dark header - TEDDY BEAR COMFORT PROGRAM
+  doc.setFillColor(70, 80, 95);
+  doc.rect(0, 0, 210, 38, 'F');
+  doc.setFontSize(18);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(255, 255, 255);
+  doc.text('TEDDY BEAR COMFORT PROGRAM', 105, 16, { align: 'center' });
+  doc.setFontSize(11);
+  doc.setFont('helvetica', 'normal');
+  doc.text('Emergency Medical Services — Patient Comfort Tracking', 105, 26, { align: 'center' });
+  doc.setFontSize(9);
+  doc.setTextColor(200, 200, 210);
+  doc.text('Providing comfort when it matters most', 105, 33, { align: 'center' });
+  y = 50;
 
-  addSection('MEDIC INFO');
-  addField('Primary Medic (First)', fields.primary_medic_first?.value, true);
-  addField('Primary Medic (Last)', fields.primary_medic_last?.value, true);
-  addField('Badge Number', fields.medic_number?.value, true);
-  addField('Second Medic', fields.second_medic?.value);
+  addSection('DATE & TIME OF DISTRIBUTION');
+  addField('DATE / TIME', fields.date_time?.value);
 
-  addSection('RECIPIENT');
-  addField('Recipient Age', fields.recipient_age?.value, true);
-  addField('Recipient Gender', fields.recipient_gender?.value, true);
-  addField('Recipient Type', fields.recipient_type?.value, true);
-  addField('Notes', fields.notes?.value);
+  addSection('PRIMARY MEDIC (REQUIRED)');
+  addField('First Name', fields.primary_medic_first?.value);
+  addField('Last Name', fields.primary_medic_last?.value);
+  addField('MEDIC NUMBER', fields.medic_number?.value);
+
+  addSection('SECOND MEDIC (OPTIONAL)');
+  doc.setFontSize(9);
+  doc.setTextColor(100, 100, 110);
+  doc.text('Complete only if a second medic is on the call.', margin, y + 3);
+  y += 10;
+  addField('Second Medic Name', fields.second_medic?.value);
+
+  addSection('TEDDY BEAR RECIPIENT');
+  addField('AGE', fields.recipient_age?.value);
+  addField('GENDER', fields.recipient_gender?.value);
+  addField('RECIPIENT TYPE', fields.recipient_type?.value);
+  addField('LOCATION', fields.location?.value);
+  addField('CITY', fields.city?.value);
+  addField('UNIT', fields.unit_id?.value);
+  addField('NOTES', fields.notes?.value);
 
   y += 8;
   doc.setDrawColor(220, 220, 220);
   doc.line(margin, y, 190, y);
-  y += 10;
+  y += 12;
   doc.setFontSize(8);
   doc.setTextColor(140, 140, 140);
-  doc.text(`Generated by ParaHelper | ${new Date().toISOString()}`, 105, y, { align: 'center' });
+  doc.text(`Generated by ParaHelper | ${new Date().toISOString()} | Print-ready form + XML`, 105, y, { align: 'center' });
 
   const pdfBuffer = Buffer.from(doc.output('arraybuffer'));
 

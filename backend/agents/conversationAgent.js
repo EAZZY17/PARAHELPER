@@ -408,9 +408,24 @@ Tell the user the recommended hospital is fastest given current traffic. Open th
     }
   }
 
+  // Auto-submit: when user says send/submit and a form passes guardrail
+  const sendIntent = /\b(send it|send the form|submit it|submit the form|go ahead|send that|submit that|send off|submit|mail it)\b/i.test(cleanedMessage);
+  let autoSubmitForm = null;
+  if (sendIntent && Object.keys(formUpdates).length > 0) {
+    for (const [formType, formData] of Object.entries(formUpdates)) {
+      if (formType === 'shift_report') continue;
+      const gr = guardrailResults[formType];
+      if (gr?.passed && formData?.fields) {
+        autoSubmitForm = formType;
+        break;
+      }
+    }
+  }
+
   return {
     response: aiResponse,
     formUpdates: formUpdates,
+    autoSubmitForm: autoSubmitForm || undefined,
     guardrailResults: guardrailResults,
     mapDestination: mapDestination || undefined,
     alerts: alerts,

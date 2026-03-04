@@ -382,7 +382,7 @@ function downloadFromBase64(base64, filename, mimeType) {
   URL.revokeObjectURL(url);
 }
 
-export default function FormPanel({ currentForms, guardrailResults, sessionId, onFormSubmit, onOpenForm }) {
+export default function FormPanel({ currentForms, guardrailResults, sessionId, pendingAutoSubmit, onAutoSubmitHandled, onFormSubmit, onOpenForm }) {
   const [activeTab, setActiveTab] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitResult, setSubmitResult] = useState(null);
@@ -396,24 +396,38 @@ export default function FormPanel({ currentForms, guardrailResults, sessionId, o
     }
   }, [formTypes, activeTab]);
 
-  const handleSubmit = async () => {
-    if (!activeTab || submitting) return;
+  const handleSubmit = async (formTypeOverride) => {
+    const formType = formTypeOverride || activeTab;
+    if (!formType || submitting) return;
+    if (!currentForms[formType]) return;
     setSubmitting(true);
     setSubmitResult(null);
+    if (formType !== activeTab) setActiveTab(formType);
 
     try {
-      const { data } = await formsAPI.submit(activeTab, currentForms[activeTab], sessionId);
+      const { data } = await formsAPI.submit(formType, currentForms[formType], sessionId);
       setSubmitResult({ success: true, message: data.message || 'Sent!' });
       setLastExportResult(data.export_result || null);
-      if (onFormSubmit) onFormSubmit(activeTab, data);
+      if (onFormSubmit) onFormSubmit(formType, data);
     } catch (err) {
-      setSubmitResult({
-        success: false,
-        message: err.response?.data?.error || 'Submission failed'
-      });
+      const errData = err.response?.data;
+      const msg = errData?.guardrail
+        ? `Please fix: ${(errData.guardrail.issues || []).slice(0, 3).map(i => i.message).join('; ')}`
+        : errData?.error || 'Submission failed. Please try again.';
+      setSubmitResult({ success: false, message: msg });
     }
     setSubmitting(false);
   };
+
+  React.useEffect(() => {
+    if (!pendingAutoSubmit || submitting) return;
+    const formData = currentForms[pendingAutoSubmit];
+    const guardrail = guardrailResults[pendingAutoSubmit];
+    if (formData && guardrail?.passed) {
+      handleSubmit(pendingAutoSubmit);
+      if (onAutoSubmitHandled) onAutoSubmitHandled();
+    }
+  }, [pendingAutoSubmit]);
 
   const tabLabels = {
     occurrence_report: 'Occurrence',
