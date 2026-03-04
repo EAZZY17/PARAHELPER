@@ -10,20 +10,16 @@ const router = express.Router();
 
 router.post('/login', async (req, res) => {
   try {
-    const { badge_number, pin } = req.body;
+    const { badge_number } = req.body;
     console.log(`[Auth] Login attempt: ${badge_number}`);
 
-    if (!badge_number || !pin) {
-      return res.status(400).json({ error: 'Badge number and PIN are required' });
+    if (!badge_number) {
+      return res.status(400).json({ error: 'Badge number is required' });
     }
 
-    const paramedic = await getParamedic(badge_number);
+    const paramedic = await getParamedic(badge_number.trim());
     if (!paramedic) {
       return res.status(401).json({ error: 'Invalid badge number' });
-    }
-
-    if (String(paramedic.pin) !== String(pin)) {
-      return res.status(401).json({ error: 'Invalid PIN' });
     }
 
     const token = jwt.sign(

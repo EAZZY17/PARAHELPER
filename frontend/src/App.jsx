@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import Login from './components/Login';
 import TopBar from './components/TopBar';
 import ChatInterface from './components/ChatInterface';
 import FormPanel from './components/FormPanel';
@@ -7,15 +8,6 @@ import ShiftSummary from './components/ShiftSummary';
 import MapView from './components/MapView';
 import useParaHelper from './hooks/useParaHelper';
 import { chatAPI } from './services/api';
-
-const GUEST_PROFILE = {
-  paramedic_id: 'guest',
-  first_name: 'Guest',
-  last_name: 'User',
-  role: 'PCP',
-  station: 'Demo',
-  unit: 'N/A'
-};
 
 const globalStyles = `
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -35,11 +27,13 @@ const globalStyles = `
 `;
 
 export default function App() {
-  const [profile] = useState(GUEST_PROFILE);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [profile, setProfile] = useState(null);
   const [showShiftSummary, setShowShiftSummary] = useState(false);
   const [showMap, setShowMap] = useState(false);
   const [mapDestination, setMapDestination] = useState(null);
   const [ready, setReady] = useState(false);
+  const [restoredFromStorage, setRestoredFromStorage] = useState(false);
 
   const {
     messages, currentForms, guardrailResults, alerts,
@@ -55,27 +49,54 @@ export default function App() {
   });
 
   useEffect(() => {
-    const boot = async () => {
+    const token = localStorage.getItem('parahelper_token');
+    const savedProfile = localStorage.getItem('parahelper_profile');
+    if (token && savedProfile) {
       try {
-        const { data } = await chatAPI.startSession();
-        initSession(data.session_id, "Hey! Welcome to ParaHelper. I'm your AI shift companion. How can I help you today?");
-      } catch (err) {
-        console.error('Failed to start session:', err);
-        initSession(null, "Couldn't connect to the server. Check that the backend is running and try refreshing.");
+        setProfile(JSON.parse(savedProfile));
+        setIsLoggedIn(true);
+        setRestoredFromStorage(true);
+      } catch (e) {
+        localStorage.clear();
       }
-      setReady(true);
-    };
-    boot();
-  }, [initSession]);
-
-  const handleNewSession = async () => {
-    try {
-      const { data } = await chatAPI.startSession();
-      initSession(data.session_id, "Started a new shift. How can I help you?");
-    } catch (err) {
-      console.error('Failed to start new session:', err);
     }
+  }, []);
+
+  useEffect(() => {
+    if (isLoggedIn && restoredFromStorage) loadChat();
+  }, [isLoggedIn, restoredFromStorage, loadChat]);
+
+  useEffect(() => {
+    if (isLoggedIn) setReady(true);
+  }, [isLoggedIn]);
+
+  const handleLogin = (data) => {
+    setProfile(data.profile);
+    setIsLoggedIn(true);
+    localStorage.setItem('parahelper_token', data.token);
+    localStorage.setItem('parahelper_profile', JSON.stringify(data.profile));
+    localStorage.setItem('parahelper_session_id', data.session_id);
+    initSession(data.session_id, data.briefing);
+    setReady(true);
   };
+
+  const handleLogout = () => {
+    localStorage.removeItem('parahelper_token');
+    localStorage.removeItem('parahelper_profile');
+    localStorage.removeItem('parahelper_session_id');
+    setIsLoggedIn(false);
+    setProfile(null);
+  };
+
+
+  if (!isLoggedIn) {
+    return (
+      <>
+        <style>{globalStyles}</style>
+        <Login onLogin={handleLogin} />
+      </>
+    );
+  }
 
   return (
     <>
@@ -88,7 +109,7 @@ export default function App() {
           alerts={alerts}
           onShiftSummary={() => setShowShiftSummary(true)}
           onMap={() => setShowMap(true)}
-          onNewSession={handleNewSession}
+          onLogout={handleLogout}
         />
 
         <CrisisIndicator mode={mode} isPediatric={isPediatric} alerts={alerts} />
@@ -113,7 +134,7 @@ export default function App() {
               }}
               onOpenForm={(formType) => {
                 const pname = profile ? `${profile.first_name} ${profile.last_name}` : null;
-                const empId = profile?.paramedic_id === 'guest' ? 'GUEST' : (profile?.badge_number || null);
+                const empId = profile?.badge_number || null;
                 const base = { paramedic_name: { value: pname, confidence: pname ? 'high' : null }, employee_id: { value: empId, confidence: empId ? 'high' : null }, date: { value: new Date().toISOString().slice(0, 10), confidence: 'high' }, unit_number: { value: profile?.unit || null, confidence: profile?.unit ? 'high' : null }, station_location: { value: profile?.station || null, confidence: profile?.station ? 'high' : null }, ambulance_unit: { value: profile?.unit || null, confidence: profile?.unit ? 'high' : null } };
                 const vFields = { ...base, shift_time: { value: null, confidence: null }, engine_condition: { value: null, confidence: null }, fuel_level: { value: null, confidence: null }, tire_pressure: { value: null, confidence: null }, emergency_lights: { value: null, confidence: null }, siren_system: { value: null, confidence: null }, radio_communication: { value: null, confidence: null }, gps_navigation: { value: null, confidence: null }, ambulance_cleanliness: { value: null, confidence: null }, stretcher: { value: null, confidence: null }, oxygen_tank_level: { value: null, confidence: null }, suction_device: { value: null, confidence: null }, defibrillator: { value: null, confidence: null }, first_aid_kit: { value: null, confidence: null }, notes_issues: { value: null, confidence: null } };
                 const eFields = { ...base, oxygen_masks: { value: null, confidence: null }, iv_kits: { value: null, confidence: null }, bandages: { value: null, confidence: null }, gloves: { value: null, confidence: null }, saline_bags: { value: null, confidence: null }, epinephrine: { value: null, confidence: null }, tourniquets: { value: null, confidence: null }, trauma_dressings: { value: null, confidence: null }, epinephrine_exp: { value: null, confidence: null }, saline_exp: { value: null, confidence: null }, notes_restock: { value: null, confidence: null } };

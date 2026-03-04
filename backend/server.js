@@ -15,6 +15,7 @@ const express = require('express');
 const cors = require('cors');
 const { connectUsersDB, connectConversationsDB, connectOperationsDB } = require('./utils/mongodb');
 
+const authRoutes = require('./routes/auth');
 const chatRoutes = require('./routes/chat');
 const formRoutes = require('./routes/forms');
 const exportRoutes = require('./routes/exports');
@@ -40,6 +41,7 @@ app.use((req, res, next) => {
   next();
 });
 
+app.use('/api/auth', authRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/forms', formRoutes);
 app.use('/api', exportRoutes);

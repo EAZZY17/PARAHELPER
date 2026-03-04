@@ -8,6 +8,29 @@ const api = axios.create({
   headers: { 'Content-Type': 'application/json' }
 });
 
+api.interceptors.request.use(config => {
+  const token = localStorage.getItem('parahelper_token');
+  if (token) config.headers.Authorization = `Bearer ${token}`;
+  return config;
+});
+
+api.interceptors.response.use(
+  response => response,
+  error => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem('parahelper_token');
+      localStorage.removeItem('parahelper_profile');
+      localStorage.removeItem('parahelper_session_id');
+      window.location.href = '/';
+    }
+    return Promise.reject(error);
+  }
+);
+
+export const authAPI = {
+  login: (badge_number) => api.post('/api/auth/login', { badge_number })
+};
+
 export const chatAPI = {
   startSession: () =>
     api.post('/api/chat/session/start'),
