@@ -41,6 +41,10 @@ app.use('/api/chat', chatRoutes);
 app.use('/api/forms', formRoutes);
 app.use('/api', exportRoutes);
 
+app.get('/', (req, res) => {
+  res.redirect('/api/health');
+});
+
 app.get('/api/health', (req, res) => {
   res.json({
     status: 'ok',
