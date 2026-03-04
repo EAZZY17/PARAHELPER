@@ -2,7 +2,7 @@ const express = require('express');
 const authMiddleware = require('../middleware/auth');
 const { processMessage } = require('../agents/conversationAgent');
 const { textToSpeech } = require('../utils/elevenlabs');
-const { getMessages, getConversation, getLatestConversation } = require('../utils/mongodb');
+const { getMessages, getConversation, getLatestConversation, updateConversation } = require('../utils/mongodb');
 
 const router = express.Router();
 
@@ -68,6 +68,9 @@ router.post('/message', authMiddleware, async (req, res) => {
     });
 
     state.forms = result.formUpdates || state.forms;
+    if (Object.keys(state.forms).length > 0) {
+      updateConversation(session_id, { forms: state.forms }).catch(e => console.error('[Chat] Persist forms failed:', e.message));
+    }
     state.summary = result.conversationSummary || state.summary;
     if (result.adminTaskPending !== undefined) {
       state.pendingAdminTask = result.adminTaskPending;
@@ -140,11 +143,17 @@ router.get('/latest', authMiddleware, async (req, res) => {
       return res.json({ session_id: null, messages: [], conversation: null });
     }
     const messages = await getMessages(conversation.session_id);
+    const memState = sessionState[conversation.session_id] || {};
+    const persistedForms = conversation.forms && Object.keys(conversation.forms).length > 0 ? conversation.forms : null;
+    const state = {
+      ...memState,
+      forms: memState.forms && Object.keys(memState.forms).length > 0 ? memState.forms : (persistedForms || memState.forms || {})
+    };
     res.json({
       session_id: conversation.session_id,
       conversation,
       messages,
-      state: sessionState[conversation.session_id] || {}
+      state
     });
   } catch (error) {
     console.error('[Chat] Latest fetch error:', error);

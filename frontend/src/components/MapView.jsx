@@ -35,18 +35,20 @@ export default function MapView({ profile, initialDestination, onClose }) {
 
   const geocode = useCallback(async (query) => {
     if (!query?.trim() || !MAPBOX_TOKEN) return null;
-    // Restrict to Canada and bias toward Ontario (Toronto area) to avoid US matches
+    // Restrict to Canada, prefer actual addresses/places, bias toward Ontario
     const params = new URLSearchParams({
       access_token: MAPBOX_TOKEN,
-      limit: '1',
+      limit: '5',
       country: 'CA',
-      proximity: '-79.38,43.65' // Toronto - biases results toward Ontario
+      types: 'address,place,poi',
+      proximity: '-79.38,43.65'
     });
     const res = await fetch(
       `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query.trim())}.json?${params}`
     );
     const data = await res.json();
-    const feat = data.features?.[0];
+    const features = data.features || [];
+    const feat = features.find(f => f.place_type?.includes('address') || f.place_type?.includes('place')) || features[0];
     return feat ? feat.center : null; // [lng, lat]
   }, []);
 

@@ -39,13 +39,37 @@ function detectEmotionalState(message) {
   return 'neutral';
 }
 
-const ROUTE_KEYWORDS = ['route', 'directions', 'navigate', 'how do i get', 'fastest way', 'get to', 'drive to', 'directions to', 'map to', 'show me the way'];
+// Only trigger map for EXPLICIT directions/route requests - not when filling form fields
+const ROUTE_KEYWORDS = [
+  'directions to', 'route to', 'navigate to', 'how do i get to', 'how to get to',
+  'fastest way to', 'drive to', 'map to', 'show me the way to', 'get directions',
+  'need directions', 'give me directions', 'show me the route', 'fastest route to'
+];
 
-const HOSPITAL_KEYWORDS = ['hospital', 'hopital', 'nearest hospital', 'take patient', 'accident scene', 'where to go', 'which hospital', 'best hospital', 'fastest hospital', 'closest hospital', 'emergency room', 'er'];
+const HOSPITAL_KEYWORDS = [
+  'nearest hospital', 'closest hospital', 'best hospital', 'fastest hospital',
+  'which hospital should', 'hospital recommendation', 'take patient to hospital',
+  'nearest er', 'closest emergency'
+];
 
 function detectHospitalRequest(message) {
   const lower = message.toLowerCase();
   return HOSPITAL_KEYWORDS.some(k => lower.includes(k));
+}
+
+function isLikelyFormFieldAnswer(message, guardrailResults) {
+  if (!message || typeof message !== 'string') return false;
+  const trimmed = message.trim();
+  if (trimmed.length > 80) return false; // long messages = likely not a single form field
+  const locationLabels = ['location', 'city', 'address', 'date', 'time', 'severity'];
+  const hasFormsWithMissingLocation = Object.values(guardrailResults || {}).some((gr) => {
+    const issues = (gr?.issues || []).filter(i => i.type === 'missing_required');
+    return issues.some(i => {
+      const label = (i.label || '').toLowerCase();
+      return locationLabels.some(l => label.includes(l));
+    });
+  });
+  return hasFormsWithMissingLocation;
 }
 
 async function extractSceneAddress(message, conversationContext) {
@@ -155,26 +179,18 @@ async function processMessage({
 
   const adminTask = detectAdminTask(cleanedMessage);
 
+  // ALWAYS run extraction for every form on every message - fill form as info is given, no matter what
+  const allFormTypes = new Set([...detectedForms, ...Object.keys(currentForms || {})]);
   let formUpdates = { ...currentForms };
-  for (const formType of detectedForms) {
+
+  for (const formType of allFormTypes) {
+    if (!formType) continue;
     try {
-      console.log(`[ConversationAgent] Form detected: ${formType}`);
       const existingData = formUpdates[formType]?.fields || {};
       const extracted = await extractFormData(cleanedMessage, formType, existingData, paramedicProfile, conversationContext);
       if (extracted) formUpdates[formType] = extracted;
     } catch (e) {
       console.error(`[ConversationAgent] Extraction failed for ${formType}:`, e.message);
-    }
-  }
-
-  for (const [formType, formData] of Object.entries(currentForms)) {
-    if (!detectedForms.includes(formType) && formData) {
-      try {
-        const updated = await extractFormData(cleanedMessage, formType, formData.fields || {}, paramedicProfile, conversationContext);
-        if (updated) formUpdates[formType] = updated;
-      } catch (e) {
-        console.error(`[ConversationAgent] Extraction update failed for ${formType}:`, e.message);
-      }
     }
   }
 
@@ -202,7 +218,10 @@ async function processMessage({
   let mapDestination = null;
   let hospitalRecommendation = null;
 
-  if (detectHospitalRequest(cleanedMessage)) {
+  // Only open map for EXPLICIT directions/hospital requests - NOT when filling form fields (location, city, etc.)
+  const skipMapForFormAnswer = isLikelyFormFieldAnswer(cleanedMessage, guardrailResults);
+
+  if (!skipMapForFormAnswer && detectHospitalRequest(cleanedMessage)) {
     try {
       const sceneAddr = await extractSceneAddress(cleanedMessage, conversationContext);
       const addrToUse = sceneAddr || `${paramedicProfile.station || 'Toronto'}, ON`;
@@ -214,7 +233,7 @@ async function processMessage({
     } catch (e) {
       console.error('[ConversationAgent] Hospital recommendation failed:', e.message);
     }
-  } else if (detectDirectionsRequest(cleanedMessage)) {
+  } else if (!skipMapForFormAnswer && detectDirectionsRequest(cleanedMessage)) {
     try {
       mapDestination = await extractDestinationAddress(cleanedMessage, conversationContext);
       if (mapDestination) console.log('[ConversationAgent] Directions request detected, destination:', mapDestination);
@@ -339,7 +358,7 @@ Tell the user the recommended hospital is fastest given current traffic. Open th
   let aiResponse;
   try {
     aiResponse = await chatCompletion(conversationMessages, 'gemini-2.5-flash', {
-      max_tokens: 512,
+      max_tokens: 1024,
       temperature: 0.8
     });
     if (!aiResponse || typeof aiResponse !== 'string') {
@@ -370,6 +389,7 @@ Tell the user the recommended hospital is fastest given current traffic. Open th
   try {
     await updateConversation(sessionId, {
     forms_triggered: Object.keys(formUpdates),
+    forms: formUpdates,
     status: 'active',
     last_message_at: new Date()
   });

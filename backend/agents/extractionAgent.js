@@ -58,6 +58,16 @@ function extractPatterns(text, formType) {
     if (/\bno injuries\b|\bno one (?:was )?hurt\b/i.test(text)) out.injuries_reported = { value: 'no', confidence: 'high' };
     if (/\b(?:door|vehicle|equipment)\s+damage\b|damage to/i.test(text)) out.equipment_damage = { value: 'yes', confidence: 'high' };
     if (/\bno damage\b|\bminor.*no damage/i.test(text)) out.equipment_damage = { value: 'no', confidence: 'high' };
+
+    // City: "Vaughan, Toronto", "the city is Vaughan", "in Scarborough", "Toronto", etc.
+    const cityMatch = text.match(/(?:city\s+(?:is|was)\s+)?([A-Za-z]+(?:\s+[A-Za-z]+)?)\s*,?\s*(?:Toronto|ON)?/i)
+      || text.match(/(?:in|at)\s+([A-Za-z]+(?:\s+[A-Za-z]+)?)(?:\s*,|\s+Toronto|\.|$)/i)
+      || text.match(/\b(Toronto|Vaughan|Scarborough|Brampton|Mississauga|Hamilton|Ottawa|Markham|Pickering|Oshawa|Burlington|Oakville|Etobicoke|North York)\b/i);
+    if (cityMatch) {
+      let city = (cityMatch[1] || cityMatch[0]).trim();
+      if (city.toLowerCase() === 'vaughaun') city = 'Vaughan';
+      if (city.length > 1 && city.length < 50) out.city = { value: city, confidence: 'high' };
+    }
   }
 
   if (formType === 'teddy_bear') {
@@ -175,6 +185,7 @@ Rules:
 - severity: low/medium/high
 - injuries_reported, equipment_damage: yes/no
 - IMPORTANT: Combine info from ALL messages in the conversation. If user said "2pm" in one message and "March 3rd" in another, use both.
+- For occurrence forms: city is REQUIRED. Extract from "Vaughan, Toronto", "city is Vaughan", "in Scarborough", etc. Use the city name only (e.g. "Vaughan" not "Vaughan, Toronto").
 
 Return ONLY valid JSON:
 {
@@ -207,9 +218,9 @@ Return ONLY valid JSON:
       }
     }
 
-    // Apply pattern-extracted values where LLM didn't find anything
+    // Pattern extraction ALWAYS wins when it has a value - ensures form fills as user speaks, no matter what
     for (const [key, val] of Object.entries(patternExtracted)) {
-      if (val?.value && schema[key] && (!parsed.fields[key]?.value || parsed.fields[key]?.confidence === 'low')) {
+      if (val?.value && schema[key]) {
         parsed.fields[key] = val;
       }
     }
@@ -225,7 +236,7 @@ Return ONLY valid JSON:
   } catch (error) {
     console.error('[ExtractionAgent] Extraction failed:', error.message);
     const fallback = { form_type: formType, fields: {} };
-    for (const [key, val] of Object.entries({ ...prefilled, ...existingData })) {
+    for (const [key, val] of Object.entries({ ...prefilled, ...existingData, ...patternExtracted })) {
       if (val && typeof val === 'object' && val.value) {
         fallback.fields[key] = val;
       } else if (val) {

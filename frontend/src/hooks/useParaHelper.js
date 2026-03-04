@@ -120,7 +120,9 @@ export default function useParaHelper(options = {}) {
         }));
         setMessages(msgs);
         if (data.state?.phase) setPhase(data.state.phase);
-        // Don't restore forms - only show forms when user triggers one in this session
+        if (data.state?.forms && Object.keys(data.state.forms).length > 0) {
+          setCurrentForms(prev => ({ ...prev, ...data.state.forms }));
+        }
       }
       setChatLoaded(true);
     } catch (err) {
