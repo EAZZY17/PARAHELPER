@@ -537,9 +537,15 @@ export default function FormPanel({ currentForms, guardrailResults, sessionId, p
               background: submitResult.success ? 'rgba(72, 187, 120, 0.15)' : 'rgba(229, 62, 62, 0.15)',
               color: submitResult.success ? '#68d391' : '#fc8181'
             }}>
-              {submitResult.success
-                ? 'Form sent to Hillsidesplc@gmail.com. Download your copy below.'
-                : submitResult.message}
+              {submitResult.success ? (
+                <>
+                  {lastExportResult?.emailResult?.success === false
+                    ? 'Form saved. Email failed — add GMAIL_USER + GMAIL_APP_PASSWORD to .env or verify SENDER_EMAIL in SendGrid. Download your copy below.'
+                    : 'Form sent to Hillsidesplc@gmail.com. Download your copy below.'}
+                </>
+              ) : (
+                submitResult.message
+              )}
             </div>
           )}
           {submitResult?.success && lastExportResult && (lastExportResult.pdfBase64 || lastExportResult.docxBase64) && (

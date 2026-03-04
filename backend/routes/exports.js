@@ -4,6 +4,7 @@ const { getParamedicById, getStatusReport, getShifts } = require('../utils/mongo
 const { getCurrentWeather } = require('../utils/weather');
 const { generateShiftSummary } = require('../agents/summarizerAgent');
 const { getMessages, getConversation } = require('../utils/mongodb');
+const { sendFormEmail } = require('../utils/email');
 
 const router = express.Router();
 
@@ -38,6 +39,24 @@ router.get('/paramedic/:paramedic_id/shifts', authMiddleware, async (req, res) =
   } catch (error) {
     console.error('[Exports] Shifts error:', error);
     res.status(500).json({ error: 'Could not fetch shifts' });
+  }
+});
+
+router.post('/test-email', authMiddleware, async (req, res) => {
+  try {
+    const to = process.env.FORM_RECIPIENT_EMAIL || 'Hillsidesplc@gmail.com';
+    const result = await sendFormEmail({
+      to,
+      subject: '[ParaHelper] Email Test - Form Delivery Verification',
+      body: `This is a test email from ParaHelper.\n\nIf you receive this, form delivery to ${to} is working.\n\nSent at: ${new Date().toISOString()}`
+    });
+    if (!result.success) {
+      return res.status(500).json({ success: false, error: result.error, hint: 'Check SENDER_EMAIL is verified in SendGrid, or use GMAIL_USER + GMAIL_APP_PASSWORD' });
+    }
+    res.json({ success: true, message: `Test email sent to ${to}. Check inbox (and spam).` });
+  } catch (error) {
+    console.error('[TestEmail] Error:', error);
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 
