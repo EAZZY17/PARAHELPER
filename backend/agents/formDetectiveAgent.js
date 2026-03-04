@@ -18,6 +18,16 @@ const FORM_TRIGGERS = {
     'status', 'certifications', 'vacation', 'overtime', 'compliance',
     'acr', 'vaccination', 'driver license', 'uniform', 'missed meal',
     'criminal record', 'education', 'status check', 'status report'
+  ],
+  vehicle_inventory: [
+    'vehicle inventory', 'ambulance check', 'pre shift', 'vehicle inspection',
+    'unit check', 'ambulance condition', 'tire pressure', 'fuel level',
+    'emergency lights', 'siren', 'stretcher', 'oxygen tank', 'defibrillator'
+  ],
+  equipment_inventory: [
+    'equipment inventory', 'supplies check', 'restock', 'oxygen masks',
+    'iv kits', 'bandages', 'gloves', 'saline', 'epinephrine', 'tourniquet',
+    'trauma dressing', 'expiration', 'low stock', 'missing items'
   ]
 };
 
@@ -59,13 +69,15 @@ async function detectFormsWithAI(message, conversationContext = '') {
       {
         role: 'system',
         content: `You detect which paramedic forms are needed from a message. Return ONLY a JSON array of form types.
-Possible forms: "occurrence_report", "teddy_bear", "shift_report", "status_report"
+Possible forms: "occurrence_report", "teddy_bear", "shift_report", "status_report", "vehicle_inventory", "equipment_inventory"
 If no form is needed, return [].
 Rules:
 - Accidents/incidents/damage/injuries → occurrence_report
 - Teddy bears/comfort items/scared children → teddy_bear  
 - Schedule/shift/hours/work times → shift_report
 - Status/certifications/compliance/vacation/overtime → status_report
+- Vehicle/ambulance inspection/pre-shift check → vehicle_inventory
+- Equipment/supplies/restock/inventory check → equipment_inventory
 - A single message can trigger MULTIPLE forms
 - Age under 12 → also add teddy_bear
 Return ONLY the JSON array, nothing else.`

@@ -75,6 +75,30 @@ function extractPatterns(text, formType) {
     if (ageMatch) out.recipient_age = { value: ageMatch[1] || ageMatch[2] || ageMatch[3], confidence: 'high' };
   }
 
+  if (formType === 'vehicle_inventory' || formType === 'equipment_inventory') {
+    if (lower.includes('today')) {
+      const d = new Date();
+      out.date = { value: d.toISOString().slice(0, 10), confidence: 'medium' };
+    }
+    const okItems = ['engine', 'fuel', 'tire', 'lights', 'siren', 'radio', 'gps', 'cleanliness', 'stretcher', 'suction', 'defibrillator', 'first aid'];
+    const itemMap = { engine: 'engine_condition', fuel: 'fuel_level', tire: 'tire_pressure', lights: 'emergency_lights', siren: 'siren_system', radio: 'radio_communication', gps: 'gps_navigation', cleanliness: 'ambulance_cleanliness', stretcher: 'stretcher', suction: 'suction_device', defibrillator: 'defibrillator', 'first aid': 'first_aid_kit' };
+    for (const item of okItems) {
+      if (new RegExp(`${item}.*(?:ok|good|fine|working)`).test(lower)) {
+        const key = itemMap[item];
+        if (key) out[key] = { value: 'OK', confidence: 'high' };
+      }
+      if (new RegExp(`${item}.*(?:low|issue|not working|needs)`).test(lower)) {
+        const key = itemMap[item];
+        if (key) out[key] = { value: key.includes('fuel') || key.includes('oxygen') ? 'Low' : 'Issue', confidence: 'high' };
+      }
+    }
+    if (/\boxygen.*(?:full|100)/i.test(text)) out.oxygen_tank_level = { value: 'Full', confidence: 'high' };
+    if (/\boxygen.*(?:low|\d+%)/i.test(text)) {
+      const pct = text.match(/(\d+)\s*%/);
+      out.oxygen_tank_level = { value: pct ? `${pct[1]}%` : 'Low', confidence: 'high' };
+    }
+  }
+
   return out;
 }
 
@@ -134,6 +158,45 @@ const FORM_SCHEMAS = {
     vacation: { required: true, label: 'Vacation Status' },
     missed_meals: { required: true, label: 'Missed Meals Status' },
     overtime: { required: true, label: 'Overtime Status' }
+  },
+  vehicle_inventory: {
+    paramedic_name: { required: true, label: 'Paramedic Name' },
+    employee_id: { required: true, label: 'Employee ID' },
+    unit_number: { required: true, label: 'Unit Number / Ambulance ID' },
+    date: { required: true, label: 'Date' },
+    shift_time: { required: true, label: 'Shift Time' },
+    station_location: { required: true, label: 'Station Location' },
+    engine_condition: { required: true, label: 'Engine Condition' },
+    fuel_level: { required: true, label: 'Fuel Level' },
+    tire_pressure: { required: true, label: 'Tire Pressure' },
+    emergency_lights: { required: true, label: 'Emergency Lights' },
+    siren_system: { required: true, label: 'Siren System' },
+    radio_communication: { required: true, label: 'Radio Communication' },
+    gps_navigation: { required: true, label: 'GPS / Navigation' },
+    ambulance_cleanliness: { required: true, label: 'Ambulance Cleanliness' },
+    stretcher: { required: true, label: 'Stretcher' },
+    oxygen_tank_level: { required: true, label: 'Oxygen Tank Level' },
+    suction_device: { required: true, label: 'Suction Device' },
+    defibrillator: { required: true, label: 'Defibrillator' },
+    first_aid_kit: { required: true, label: 'First Aid Kit' },
+    notes_issues: { required: false, label: 'Notes / Issues' }
+  },
+  equipment_inventory: {
+    paramedic_name: { required: true, label: 'Paramedic Name' },
+    employee_id: { required: true, label: 'Employee ID' },
+    ambulance_unit: { required: true, label: 'Ambulance Unit' },
+    date: { required: true, label: 'Date' },
+    oxygen_masks: { required: false, label: 'Oxygen Masks' },
+    iv_kits: { required: false, label: 'IV Kits' },
+    bandages: { required: false, label: 'Bandages' },
+    gloves: { required: false, label: 'Gloves' },
+    saline_bags: { required: false, label: 'Saline Bags' },
+    epinephrine: { required: false, label: 'Epinephrine' },
+    tourniquets: { required: false, label: 'Tourniquets' },
+    trauma_dressings: { required: false, label: 'Trauma Dressings' },
+    epinephrine_exp: { required: false, label: 'Epinephrine Expiration' },
+    saline_exp: { required: false, label: 'Saline Expiration' },
+    notes_restock: { required: false, label: 'Notes / Restock Request' }
   }
 };
 
@@ -158,6 +221,10 @@ async function extractFormData(message, formType, existingData = {}, paramedicPr
     prefilled.province = 'ON';
     prefilled.vehicle_number = paramedicProfile.unit;
     prefilled.unit_id = paramedicProfile.unit;
+    prefilled.unit_number = paramedicProfile.unit;
+    prefilled.ambulance_unit = paramedicProfile.unit;
+    prefilled.station_location = paramedicProfile.station;
+    prefilled.employee_id = paramedicProfile.badge_number;
   }
 
   const fullContext = conversationContext ? `Previous conversation:\n${conversationContext}\n\nLatest message: ${message}` : message;
@@ -186,6 +253,8 @@ Rules:
 - injuries_reported, equipment_damage: yes/no
 - IMPORTANT: Combine info from ALL messages in the conversation. If user said "2pm" in one message and "March 3rd" in another, use both.
 - For occurrence forms: city is REQUIRED. Extract from "Vaughan, Toronto", "city is Vaughan", "in Scarborough", etc. Use the city name only (e.g. "Vaughan" not "Vaughan, Toronto").
+- For vehicle_inventory: engine_condition, fuel_level, tire_pressure, emergency_lights, siren_system, radio_communication, gps_navigation, ambulance_cleanliness use "OK" or "Issue"/"Low"/"Not Working"/"Needs Cleaning" as appropriate. stretcher, suction_device, defibrillator, first_aid_kit: "OK" or "Issue". oxygen_tank_level: "Full" or "Low" or percentage like "60%".
+- For equipment_inventory: oxygen_masks, iv_kits, bandages, gloves, saline_bags, epinephrine, tourniquets, trauma_dressings: use quantity and status "OK"/"Low Stock"/"Missing"/"Expired".
 
 Return ONLY valid JSON:
 {

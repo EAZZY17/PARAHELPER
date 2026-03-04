@@ -1,8 +1,8 @@
 const express = require('express');
 const authMiddleware = require('../middleware/auth');
 const { runGuardrailCheck } = require('../agents/guardrailAgent');
-const { exportOccurrenceReport, exportTeddyBear, exportStatusReport } = require('../agents/exportAgent');
-const { saveOccurrenceReport, saveTeddyBearTracking, getOccurrenceReports, getTeddyBearRecords, getStatusReport, getShifts } = require('../utils/mongodb');
+const { exportOccurrenceReport, exportTeddyBear, exportStatusReport, exportVehicleInspection, exportEquipmentInventory } = require('../agents/exportAgent');
+const { saveOccurrenceReport, saveTeddyBearTracking, saveVehicleInspection, saveEquipmentInventory, getOccurrenceReports, getTeddyBearRecords, getStatusReport, getShifts } = require('../utils/mongodb');
 const { getParamedicById } = require('../utils/mongodb');
 const { v4: uuidv4 } = require('uuid');
 
@@ -51,6 +51,28 @@ router.post('/submit', authMiddleware, async (req, res) => {
       exportResult = await exportTeddyBear(form_data, paramedic);
     } else if (form_type === 'status_report') {
       exportResult = await exportStatusReport(form_data, paramedic);
+    } else if (form_type === 'vehicle_inventory') {
+      const inspection = {
+        inspection_id: `VEH-${uuidv4().substring(0, 8)}`,
+        session_id: session_id,
+        paramedic_id: paramedicId,
+        ...flattenFormFields(form_data.fields),
+        created_at: new Date(),
+        status: 'submitted'
+      };
+      await saveVehicleInspection(inspection);
+      exportResult = await exportVehicleInspection(form_data, paramedic);
+    } else if (form_type === 'equipment_inventory') {
+      const inventory = {
+        inventory_id: `EQP-${uuidv4().substring(0, 8)}`,
+        session_id: session_id,
+        paramedic_id: paramedicId,
+        ...flattenFormFields(form_data.fields),
+        created_at: new Date(),
+        status: 'submitted'
+      };
+      await saveEquipmentInventory(inventory);
+      exportResult = await exportEquipmentInventory(form_data, paramedic);
     } else {
       return res.status(400).json({ error: 'Unknown form type' });
     }

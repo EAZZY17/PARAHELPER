@@ -44,7 +44,7 @@ export default function App() {
   const {
     messages, currentForms, guardrailResults, alerts,
     phase, mode, isPediatric, isLoading, sessionId,
-    sendMessage, submitForm, initSession, loadChat
+    sendMessage, submitForm, initSession, loadChat, setCurrentForms
   } = useParaHelper({
     onChatResponse: (data) => {
       if (data?.map_destination) {
@@ -110,6 +110,15 @@ export default function App() {
               sessionId={sessionId}
               onFormSubmit={(formType) => {
                 sendMessage(`The ${formType.replace(/_/g, ' ')} has been sent successfully.`, false);
+              }}
+              onOpenForm={(formType) => {
+                const pname = profile ? `${profile.first_name} ${profile.last_name}` : null;
+                const empId = profile?.paramedic_id === 'guest' ? 'GUEST' : (profile?.badge_number || null);
+                const base = { paramedic_name: { value: pname, confidence: pname ? 'high' : null }, employee_id: { value: empId, confidence: empId ? 'high' : null }, date: { value: new Date().toISOString().slice(0, 10), confidence: 'high' }, unit_number: { value: profile?.unit || null, confidence: profile?.unit ? 'high' : null }, station_location: { value: profile?.station || null, confidence: profile?.station ? 'high' : null }, ambulance_unit: { value: profile?.unit || null, confidence: profile?.unit ? 'high' : null } };
+                const vFields = { ...base, shift_time: { value: null, confidence: null }, engine_condition: { value: null, confidence: null }, fuel_level: { value: null, confidence: null }, tire_pressure: { value: null, confidence: null }, emergency_lights: { value: null, confidence: null }, siren_system: { value: null, confidence: null }, radio_communication: { value: null, confidence: null }, gps_navigation: { value: null, confidence: null }, ambulance_cleanliness: { value: null, confidence: null }, stretcher: { value: null, confidence: null }, oxygen_tank_level: { value: null, confidence: null }, suction_device: { value: null, confidence: null }, defibrillator: { value: null, confidence: null }, first_aid_kit: { value: null, confidence: null }, notes_issues: { value: null, confidence: null } };
+                const eFields = { ...base, oxygen_masks: { value: null, confidence: null }, iv_kits: { value: null, confidence: null }, bandages: { value: null, confidence: null }, gloves: { value: null, confidence: null }, saline_bags: { value: null, confidence: null }, epinephrine: { value: null, confidence: null }, tourniquets: { value: null, confidence: null }, trauma_dressings: { value: null, confidence: null }, epinephrine_exp: { value: null, confidence: null }, saline_exp: { value: null, confidence: null }, notes_restock: { value: null, confidence: null } };
+                const empty = formType === 'vehicle_inventory' ? { vehicle_inventory: { form_type: 'vehicle_inventory', fields: vFields } } : { equipment_inventory: { form_type: 'equipment_inventory', fields: eFields } };
+                setCurrentForms(prev => ({ ...prev, ...empty }));
               }}
             />
           </div>

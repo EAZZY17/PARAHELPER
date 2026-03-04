@@ -122,6 +122,16 @@ async function getTeddyBearRecords(paramedicId) {
   return db.collection('teddy_bear_tracking').find({ paramedic_id: paramedicId }).sort({ event_datetime: -1 }).toArray();
 }
 
+async function saveVehicleInspection(inspection) {
+  const db = await connectOperationsDB();
+  return db.collection('vehicle_inspections').insertOne(inspection);
+}
+
+async function saveEquipmentInventory(inventory) {
+  const db = await connectOperationsDB();
+  return db.collection('equipment_inventories').insertOne(inventory);
+}
+
 async function saveStatusReport(report) {
   const db = await connectOperationsDB();
   return db.collection('status_reports').updateOne(
@@ -137,6 +147,7 @@ module.exports = {
   getStatusReport, getShifts,
   saveConversation, updateConversation, getConversation, getLatestConversation,
   saveMessage, getMessages,
-  saveOccurrenceReport, saveTeddyBearTracking, saveShift, saveExport,
+  saveOccurrenceReport, saveTeddyBearTracking, saveVehicleInspection, saveEquipmentInventory,
+  saveShift, saveExport,
   getOccurrenceReports, getTeddyBearRecords, saveStatusReport
 };

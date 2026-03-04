@@ -227,6 +227,106 @@ function StatusReportForm({ data }) {
   );
 }
 
+function VehicleInventoryForm({ data, guardrail }) {
+  const f = data?.fields || {};
+  const vehicleItems = [
+    { label: 'Engine Condition', field: f.engine_condition, opts: ['OK', 'Issue'] },
+    { label: 'Fuel Level', field: f.fuel_level, opts: ['OK', 'Low'] },
+    { label: 'Tire Pressure', field: f.tire_pressure, opts: ['OK', 'Low'] },
+    { label: 'Emergency Lights', field: f.emergency_lights, opts: ['OK', 'Not Working'] },
+    { label: 'Siren System', field: f.siren_system, opts: ['OK', 'Not Working'] },
+    { label: 'Radio Communication', field: f.radio_communication, opts: ['OK', 'Not Working'] },
+    { label: 'GPS / Navigation', field: f.gps_navigation, opts: ['OK', 'Not Working'] },
+    { label: 'Ambulance Cleanliness', field: f.ambulance_cleanliness, opts: ['OK', 'Needs Cleaning'] }
+  ];
+  const equipItems = [
+    { label: 'Stretcher', field: f.stretcher, opts: ['OK', 'Issue'] },
+    { label: 'Oxygen Tank Level', field: f.oxygen_tank_level, opts: ['Full', 'Low'] },
+    { label: 'Suction Device', field: f.suction_device, opts: ['OK', 'Issue'] },
+    { label: 'Defibrillator', field: f.defibrillator, opts: ['OK', 'Issue'] },
+    { label: 'First Aid Kit', field: f.first_aid_kit, opts: ['Complete', 'Missing Items'] }
+  ];
+  return (
+    <div style={styles.formContent}>
+      <div style={styles.formHeader}>
+        <div style={{ ...styles.formIcon, background: 'rgba(245, 158, 11, 0.15)', borderColor: 'rgba(245, 158, 11, 0.3)' }}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2">
+            <rect x="2" y="6" width="20" height="12" rx="2"/>
+            <path d="M6 6V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v2"/>
+            <line x1="6" y1="14" x2="6.01" y2="14"/>
+            <line x1="18" y1="14" x2="18.01" y2="14"/>
+          </svg>
+        </div>
+        <div>
+          <h3 style={styles.formTitle}>Vehicle Inventory</h3>
+          <p style={styles.formSubtitle}>Pre-Shift Ambulance Check</p>
+        </div>
+      </div>
+      <div style={styles.sectionDivider}><span style={styles.sectionLabel}>BASIC INFORMATION</span></div>
+      <FieldRow label="Paramedic Name" field={f.paramedic_name} required />
+      <FieldRow label="Employee ID" field={f.employee_id} required />
+      <FieldRow label="Unit Number" field={f.unit_number} required />
+      <FieldRow label="Date" field={f.date} required />
+      <FieldRow label="Shift Time" field={f.shift_time} required />
+      <FieldRow label="Station Location" field={f.station_location} required />
+      <div style={styles.sectionDivider}><span style={styles.sectionLabel}>VEHICLE CONDITION</span></div>
+      {vehicleItems.map(({ label, field }, i) => (
+        <FieldRow key={i} label={label} field={field} required />
+      ))}
+      <div style={styles.sectionDivider}><span style={styles.sectionLabel}>EQUIPMENT CHECK</span></div>
+      {equipItems.map(({ label, field }, i) => (
+        <FieldRow key={i} label={label} field={field} required />
+      ))}
+      <FieldRow label="Notes / Issues" field={f.notes_issues} />
+    </div>
+  );
+}
+
+function EquipmentInventoryForm({ data, guardrail }) {
+  const f = data?.fields || {};
+  const equipRows = [
+    { label: 'Oxygen Masks', field: f.oxygen_masks },
+    { label: 'IV Kits', field: f.iv_kits },
+    { label: 'Bandages', field: f.bandages },
+    { label: 'Gloves', field: f.gloves },
+    { label: 'Saline Bags', field: f.saline_bags },
+    { label: 'Epinephrine', field: f.epinephrine },
+    { label: 'Tourniquets', field: f.tourniquets },
+    { label: 'Trauma Dressings', field: f.trauma_dressings }
+  ];
+  return (
+    <div style={styles.formContent}>
+      <div style={styles.formHeader}>
+        <div style={{ ...styles.formIcon, background: 'rgba(34, 197, 94, 0.15)', borderColor: 'rgba(34, 197, 94, 0.3)' }}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2">
+            <path d="M20 7h-9"/>
+            <path d="M14 17H5"/>
+            <circle cx="17" cy="17" r="3"/>
+            <circle cx="7" cy="7" r="3"/>
+          </svg>
+        </div>
+        <div>
+          <h3 style={styles.formTitle}>Equipment Inventory</h3>
+          <p style={styles.formSubtitle}>Medical Supplies Check</p>
+        </div>
+      </div>
+      <div style={styles.sectionDivider}><span style={styles.sectionLabel}>BASIC INFORMATION</span></div>
+      <FieldRow label="Paramedic Name" field={f.paramedic_name} required />
+      <FieldRow label="Employee ID" field={f.employee_id} required />
+      <FieldRow label="Ambulance Unit" field={f.ambulance_unit} required />
+      <FieldRow label="Date" field={f.date} required />
+      <div style={styles.sectionDivider}><span style={styles.sectionLabel}>EQUIPMENT INVENTORY</span></div>
+      {equipRows.map(({ label, field }, i) => (
+        <FieldRow key={i} label={label} field={field} />
+      ))}
+      <div style={styles.sectionDivider}><span style={styles.sectionLabel}>EXPIRATION CHECK</span></div>
+      <FieldRow label="Epinephrine Expiration" field={f.epinephrine_exp} />
+      <FieldRow label="Saline Expiration" field={f.saline_exp} />
+      <FieldRow label="Notes / Restock Request" field={f.notes_restock} />
+    </div>
+  );
+}
+
 function ShiftReportForm({ data }) {
   return (
     <div style={styles.formContent}>
@@ -282,7 +382,7 @@ function downloadFromBase64(base64, filename, mimeType) {
   URL.revokeObjectURL(url);
 }
 
-export default function FormPanel({ currentForms, guardrailResults, sessionId, onFormSubmit }) {
+export default function FormPanel({ currentForms, guardrailResults, sessionId, onFormSubmit, onOpenForm }) {
   const [activeTab, setActiveTab] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitResult, setSubmitResult] = useState(null);
@@ -319,14 +419,18 @@ export default function FormPanel({ currentForms, guardrailResults, sessionId, o
     occurrence_report: 'Occurrence',
     teddy_bear: 'Teddy Bear',
     status_report: 'Status',
-    shift_report: 'Shifts'
+    shift_report: 'Shifts',
+    vehicle_inventory: 'Vehicle',
+    equipment_inventory: 'Equipment'
   };
 
   const tabIcons = {
     occurrence_report: '#fc8181',
     teddy_bear: '#90cdf4',
     status_report: '#68d391',
-    shift_report: '#f6e05e'
+    shift_report: '#f6e05e',
+    vehicle_inventory: '#f59e0b',
+    equipment_inventory: '#22c55e'
   };
 
   const guardrail = activeTab ? guardrailResults[activeTab] : null;
@@ -344,7 +448,19 @@ export default function FormPanel({ currentForms, guardrailResults, sessionId, o
           </svg>
         </div>
         <p style={styles.emptyText}>Forms will appear here as you talk</p>
-        <p style={styles.emptySubtext}>Just speak naturally — I'll detect what you need</p>
+        <p style={styles.emptySubtext}>Or open a checklist instantly:</p>
+        <div style={styles.quickActions}>
+          {onOpenForm && (
+            <>
+              <button onClick={() => onOpenForm('vehicle_inventory')} style={{ ...styles.quickBtn, borderColor: 'rgba(245, 158, 11, 0.5)', color: '#f59e0b' }}>
+                🚑 Vehicle Inventory
+              </button>
+              <button onClick={() => onOpenForm('equipment_inventory')} style={{ ...styles.quickBtn, borderColor: 'rgba(34, 197, 94, 0.5)', color: '#22c55e' }}>
+                🧰 Equipment Inventory
+              </button>
+            </>
+          )}
+        </div>
       </div>
     );
   }
@@ -373,6 +489,8 @@ export default function FormPanel({ currentForms, guardrailResults, sessionId, o
         {activeTab === 'teddy_bear' && <TeddyBearForm data={currentForms[activeTab]} guardrail={guardrail} />}
         {activeTab === 'status_report' && <StatusReportForm data={currentForms[activeTab]} />}
         {activeTab === 'shift_report' && <ShiftReportForm data={currentForms[activeTab]} />}
+        {activeTab === 'vehicle_inventory' && <VehicleInventoryForm data={currentForms[activeTab]} guardrail={guardrail} />}
+        {activeTab === 'equipment_inventory' && <EquipmentInventoryForm data={currentForms[activeTab]} guardrail={guardrail} />}
       </div>
 
       {guardrail && guardrail.issues.length > 0 && (
@@ -433,7 +551,9 @@ export default function FormPanel({ currentForms, guardrailResults, sessionId, o
               cursor: submitting || !canSubmit ? 'not-allowed' : 'pointer'
             }}
           >
-            {submitting ? 'Sending...' : canSubmit ? 'Send Report' : 'Fix issues to send'}
+            {submitting ? 'Sending...' : canSubmit
+              ? (activeTab === 'vehicle_inventory' ? 'Submit Vehicle Inspection' : activeTab === 'equipment_inventory' ? 'Submit Inventory' : 'Send Report')
+              : 'Fix issues to send'}
           </button>
         </div>
       )}
@@ -460,6 +580,18 @@ const styles = {
   emptyIcon: { marginBottom: '16px', opacity: 0.5 },
   emptyText: { color: 'rgba(255,255,255,0.4)', fontSize: '15px', textAlign: 'center', margin: 0 },
   emptySubtext: { color: 'rgba(255,255,255,0.25)', fontSize: '13px', textAlign: 'center', marginTop: '8px' },
+  quickActions: { display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '20px', width: '100%', maxWidth: '260px' },
+  quickBtn: {
+    padding: '12px 16px',
+    borderRadius: '10px',
+    border: '1px solid',
+    background: 'rgba(255,255,255,0.03)',
+    fontSize: '13px',
+    fontWeight: 600,
+    cursor: 'pointer',
+    fontFamily: 'Inter, sans-serif',
+    transition: 'all 0.2s'
+  },
   tabs: {
     display: 'flex',
     gap: '4px',
