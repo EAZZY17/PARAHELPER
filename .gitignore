@@ -1,0 +1,9 @@
+node_modules/
+.env
+*.env.local
+parahelper_chromadb/
+chroma_data/
+build/
+dist/
+.DS_Store
+*.log
