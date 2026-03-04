@@ -40,13 +40,21 @@ function extractPatterns(text, formType) {
       out.time = { value: `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`, confidence: 'high' };
     }
 
-    // Location: "at the Main Street station", "Main Street station", "happened at X"
-    const locMatch = text.match(/(?:happened at|occurred at|at (?:the )?)([^.?!]+?)(?:\.|$)/i)
-      || text.match(/([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*\s+station(?:\s+lot)?)/i)
-      || text.match(/(?:in|at)\s+(?:the\s+)?([^.?!,]+?)(?:\s+lot|\s+station|\.|,|$)/i);
-    if (locMatch) {
-      const loc = locMatch[1].replace(/^(?:the|a|an)\s+/i, '').trim();
+    // Location: "Highway 401 West", "at the Main Street station", "happened at X"
+    const highwayMatch = text.match(/[Hh]ighway\s+(\d+[A-Za-z]*(?:\s+(?:East|West|North|South))?)/i);
+    if (highwayMatch) {
+      const loc = 'Highway ' + highwayMatch[1];
       if (loc.length > 2 && loc.length < 80) out.location = { value: loc, confidence: 'high' };
+    } else {
+      const locMatch = text.match(/(?:happened at|occurred at|at (?:the )?)([^.?!]+?)(?:\.|$)/i)
+        || text.match(/([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*\s+station(?:\s+lot)?)/i)
+        || text.match(/(?:in|at)\s+(?:the\s+)?([^.?!,]+?)(?:\s+lot|\s+station|\.|,|$)/i);
+      if (locMatch) {
+        const loc = locMatch[1].replace(/^(?:the|a|an)\s+/i, '').trim();
+        if (loc.length > 2 && loc.length < 80 && !/^(?:previous|latest|conversation|message)$/i.test(loc)) {
+          out.location = { value: loc, confidence: 'high' };
+        }
+      }
     }
 
     // Severity
@@ -59,14 +67,22 @@ function extractPatterns(text, formType) {
     if (/\b(?:door|vehicle|equipment)\s+damage\b|damage to/i.test(text)) out.equipment_damage = { value: 'yes', confidence: 'high' };
     if (/\bno damage\b|\bminor.*no damage/i.test(text)) out.equipment_damage = { value: 'no', confidence: 'high' };
 
-    // City: "Vaughan, Toronto", "the city is Vaughan", "in Scarborough", "Toronto", etc.
-    const cityMatch = text.match(/(?:city\s+(?:is|was)\s+)?([A-Za-z]+(?:\s+[A-Za-z]+)?)\s*,?\s*(?:Toronto|ON)?/i)
-      || text.match(/(?:in|at)\s+([A-Za-z]+(?:\s+[A-Za-z]+)?)(?:\s*,|\s+Toronto|\.|$)/i)
-      || text.match(/\b(Toronto|Vaughan|Scarborough|Brampton|Mississauga|Hamilton|Ottawa|Markham|Pickering|Oshawa|Burlington|Oakville|Etobicoke|North York)\b/i);
-    if (cityMatch) {
-      let city = (cityMatch[1] || cityMatch[0]).trim();
+    // City: "in the city of Toronto", "city of Vaughan", "Vaughan, Toronto", etc.
+    const cityOfMatch = text.match(/(?:in the )?city of\s+([A-Za-z]+(?:\s+[A-Za-z]+)?)/i);
+    if (cityOfMatch) {
+      let city = cityOfMatch[1].trim();
       if (city.toLowerCase() === 'vaughaun') city = 'Vaughan';
       if (city.length > 1 && city.length < 50) out.city = { value: city, confidence: 'high' };
+    } else {
+      const cityMatch = text.match(/(?:city\s+(?:is|was)\s+)([A-Za-z]+(?:\s+[A-Za-z]+)?)/i)
+        || text.match(/\b(Toronto|Vaughan|Scarborough|Brampton|Mississauga|Hamilton|Ottawa|Markham|Pickering|Oshawa|Burlington|Oakville|Etobicoke|North York)\b/i);
+      if (cityMatch) {
+        let city = (cityMatch[1] || cityMatch[0]).trim();
+        if (city.toLowerCase() === 'vaughaun') city = 'Vaughan';
+        if (city.length > 1 && city.length < 50 && !/^(?:previous|conversation|message)$/i.test(city)) {
+          out.city = { value: city, confidence: 'high' };
+        }
+      }
     }
   }
 
@@ -227,7 +243,9 @@ async function extractFormData(message, formType, existingData = {}, paramedicPr
     prefilled.employee_id = paramedicProfile.badge_number;
   }
 
-  const fullContext = conversationContext ? `Previous conversation:\n${conversationContext}\n\nLatest message: ${message}` : message;
+  const fullContext = conversationContext
+    ? `---USER/ASSISTANT DIALOGUE---\n${conversationContext}\n---END DIALOGUE---\n\nMOST RECENT USER MESSAGE: ${message}`
+    : message;
   const patternExtracted = extractPatterns(fullContext, formType);
 
   try {
@@ -252,7 +270,7 @@ Rules:
 - severity: low/medium/high
 - injuries_reported, equipment_damage: yes/no
 - IMPORTANT: Combine info from ALL messages in the conversation. If user said "2pm" in one message and "March 3rd" in another, use both.
-- For occurrence forms: city is REQUIRED. Extract from "Vaughan, Toronto", "city is Vaughan", "in Scarborough", etc. Use the city name only (e.g. "Vaughan" not "Vaughan, Toronto").
+- For occurrence forms: location = the physical place (e.g. "Highway 401 West", "123 Main St", "corner of X and Y"). city = the city name only (e.g. "Toronto", "Vaughan"). NEVER use "Previous conversation", "Latest message", or any instruction/meta text as values.
 - For vehicle_inventory: engine_condition, fuel_level, tire_pressure, emergency_lights, siren_system, radio_communication, gps_navigation, ambulance_cleanliness use "OK" or "Issue"/"Low"/"Not Working"/"Needs Cleaning" as appropriate. stretcher, suction_device, defibrillator, first_aid_kit: "OK" or "Issue". oxygen_tank_level: "Full" or "Low" or percentage like "60%".
 - For equipment_inventory: oxygen_masks, iv_kits, bandages, gloves, saline_bags, epinephrine, tourniquets, trauma_dressings: use quantity and status "OK"/"Low Stock"/"Missing"/"Expired".
 
@@ -291,6 +309,15 @@ Return ONLY valid JSON:
     for (const [key, val] of Object.entries(patternExtracted)) {
       if (val?.value && schema[key]) {
         parsed.fields[key] = val;
+      }
+    }
+
+    // Sanitize: reject meta/instruction text that LLM sometimes wrongly extracts
+    const BAD_VALUES = /^(?:previous\s+conversation|latest\s+message|conversation|message|user\s+said|assistant\s+said|extract|instruction|knocked\s+out|don't\s+worry|see\s+above)/i;
+    for (const [key, field] of Object.entries(parsed.fields || {})) {
+      const v = field?.value;
+      if (typeof v === 'string' && (BAD_VALUES.test(v) || v.length > 200)) {
+        parsed.fields[key] = { value: null, confidence: null };
       }
     }
 
