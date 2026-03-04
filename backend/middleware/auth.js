@@ -1,19 +1,18 @@
-const jwt = require('jsonwebtoken');
+// No auth required - use guest profile for all requests
+const GUEST_PARAMEDIC = {
+  paramedic_id: 'guest',
+  badge_number: 'GUEST',
+  role: 'PCP',
+  first_name: 'Guest',
+  last_name: 'User',
+  station: 'Demo',
+  unit: 'N/A',
+  email: 'guest@parahelper.demo'
+};
 
 function authMiddleware(req, res, next) {
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return res.status(401).json({ error: 'No token provided' });
-  }
-
-  const token = authHeader.split(' ')[1];
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'parahelper_secret_key_2026');
-    req.paramedic = decoded;
-    next();
-  } catch (error) {
-    return res.status(401).json({ error: 'Invalid token' });
-  }
+  req.paramedic = GUEST_PARAMEDIC;
+  next();
 }
 
 module.exports = authMiddleware;

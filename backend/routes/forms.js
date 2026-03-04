@@ -23,7 +23,7 @@ router.post('/submit', authMiddleware, async (req, res) => {
       });
     }
 
-    const paramedic = await getParamedicById(paramedicId);
+    const paramedic = (await getParamedicById(paramedicId)) || req.paramedic;
     let exportResult;
 
     if (form_type === 'occurrence_report') {

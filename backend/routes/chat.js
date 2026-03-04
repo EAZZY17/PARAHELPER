@@ -2,11 +2,33 @@ const express = require('express');
 const authMiddleware = require('../middleware/auth');
 const { processMessage } = require('../agents/conversationAgent');
 const { textToSpeech } = require('../utils/elevenlabs');
-const { getMessages, getConversation, getLatestConversation, updateConversation } = require('../utils/mongodb');
+const { getMessages, getConversation, getLatestConversation, updateConversation, saveConversation } = require('../utils/mongodb');
+const { v4: uuidv4 } = require('uuid');
 
 const router = express.Router();
 
 const sessionState = {};
+
+// Start a new session (no auth required)
+router.post('/session/start', authMiddleware, async (req, res) => {
+  try {
+    const sessionId = `SES-${uuidv4().substring(0, 8)}`;
+    await saveConversation({
+      session_id: sessionId,
+      paramedic_id: req.paramedic.paramedic_id,
+      started_at: new Date(),
+      ended_at: null,
+      summary: '',
+      status: 'active',
+      forms_triggered: [],
+      shift_date: new Date().toISOString().split('T')[0]
+    });
+    res.json({ session_id: sessionId });
+  } catch (error) {
+    console.error('[Chat] Session start error:', error);
+    res.status(500).json({ error: 'Could not start session' });
+  }
+});
 
 router.post('/message', authMiddleware, async (req, res) => {
   try {
@@ -30,6 +52,19 @@ router.post('/message', authMiddleware, async (req, res) => {
         shiftStart: Date.now(),
         pendingAdminTask: null
       };
+      const existing = await getConversation(session_id);
+      if (!existing) {
+        await saveConversation({
+          session_id,
+          paramedic_id: paramedicId,
+          started_at: new Date(),
+          ended_at: null,
+          summary: '',
+          status: 'active',
+          forms_triggered: [],
+          shift_date: new Date().toISOString().split('T')[0]
+        });
+      }
     }
 
     const state = sessionState[session_id];

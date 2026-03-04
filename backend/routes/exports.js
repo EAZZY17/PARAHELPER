@@ -44,7 +44,7 @@ router.post('/shift-summary', authMiddleware, async (req, res) => {
   try {
     const { session_id } = req.body;
     const paramedicId = req.paramedic.paramedic_id;
-    const paramedic = await getParamedicById(paramedicId);
+    const paramedic = (await getParamedicById(paramedicId)) || req.paramedic;
     const messages = await getMessages(session_id);
     const conversation = await getConversation(session_id);
 

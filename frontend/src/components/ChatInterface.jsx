@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import VoiceButton from './VoiceButton';
 import useVoice from '../hooks/useVoice';
 
-export default function ChatInterface({ messages, isLoading, onSendMessage }) {
+export default function ChatInterface({ messages, isLoading, onSendMessage, disabled }) {
   const [textInput, setTextInput] = useState('');
   const messagesEndRef = useRef(null);
   const { isListening, transcript, interimTranscript, startListening, stopListening, playAudio, supported } = useVoice();
@@ -112,23 +112,23 @@ export default function ChatInterface({ messages, isLoading, onSendMessage }) {
           value={textInput}
           onChange={e => setTextInput(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Type a message..."
+          placeholder={disabled ? 'Starting...' : 'Type a message...'}
           style={styles.textInput}
-          disabled={isListening}
+          disabled={isListening || disabled}
         />
 
         <VoiceButton
           isListening={isListening}
           onToggle={handleVoiceToggle}
-          disabled={!supported || isLoading}
+          disabled={!supported || isLoading || disabled}
         />
 
         <button
           onClick={handleSend}
-          disabled={!textInput.trim() || isLoading || isListening}
+          disabled={!textInput.trim() || isLoading || isListening || disabled}
           style={{
             ...styles.sendButton,
-            opacity: !textInput.trim() || isLoading || isListening ? 0.4 : 1
+            opacity: !textInput.trim() || isLoading || isListening || disabled ? 0.4 : 1
           }}
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">

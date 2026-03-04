@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-export default function TopBar({ profile, phase, mode, alerts, onShiftSummary, onMap, onLogout }) {
+export default function TopBar({ profile, phase, mode, alerts, onShiftSummary, onMap, onNewSession }) {
   const [shiftTime, setShiftTime] = useState('00:00:00');
   const [shiftStart] = useState(Date.now());
 
@@ -95,7 +95,7 @@ export default function TopBar({ profile, phase, mode, alerts, onShiftSummary, o
           </svg>
         </button>
 
-        <button onClick={onLogout} style={styles.logoutBtn} title="End Shift">
+        <button onClick={onNewSession} style={styles.logoutBtn} title="New Session">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
             <polyline points="16,17 21,12 16,7"/>
