@@ -1,16 +1,55 @@
 import React, { useState, useRef, useEffect } from 'react';
 import VoiceButton from './VoiceButton';
 import useVoice from '../hooks/useVoice';
+import { speak, stopSpeaking, ensureVoicesLoaded } from '../utils/speech';
+
+const VOICE_MODE_KEY = 'parahelper_voice_mode';
 
 export default function ChatInterface({ messages, isLoading, onSendMessage, disabled }) {
   const [textInput, setTextInput] = useState('');
   const [inputFocused, setInputFocused] = useState(false);
+  const [voiceMode, setVoiceMode] = useState(() => {
+    try {
+      return localStorage.getItem(VOICE_MODE_KEY) !== 'false';
+    } catch { return true; }
+  });
   const messagesEndRef = useRef(null);
+  const lastSpokenIdRef = useRef(null);
+  const prevLoadingRef = useRef(false);
   const { isListening, transcript, interimTranscript, startListening, stopListening, playAudio, supported } = useVoice();
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isLoading]);
+
+  useEffect(() => {
+    ensureVoicesLoaded();
+  }, []);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(VOICE_MODE_KEY, String(voiceMode));
+    } catch (e) {}
+  }, [voiceMode]);
+
+  useEffect(() => {
+    const justFinishedLoading = prevLoadingRef.current && !isLoading;
+    prevLoadingRef.current = isLoading;
+    if (!voiceMode || !justFinishedLoading || messages.length === 0) return;
+    const last = messages[messages.length - 1];
+    if (last.role !== 'assistant' || last.isError || last.id === lastSpokenIdRef.current) return;
+    const content = typeof last.content === 'string' ? last.content : String(last.content ?? '');
+    if (!content.trim()) return;
+    lastSpokenIdRef.current = last.id;
+    speak(content);
+  }, [messages, isLoading, voiceMode]);
+
+  const toggleVoiceMode = () => {
+    setVoiceMode(v => {
+      if (v) stopSpeaking();
+      return !v;
+    });
+  };
 
   const handleSend = () => {
     const text = textInput.trim();
@@ -24,7 +63,7 @@ export default function ChatInterface({ messages, isLoading, onSendMessage, disa
       const finalText = stopListening();
       if (finalText) {
         const result = await onSendMessage(finalText, true);
-        if (result?.audio_url) {
+        if (result?.audio_url && !voiceMode) {
           playAudio(result.audio_url);
         }
       }
@@ -108,6 +147,19 @@ export default function ChatInterface({ messages, isLoading, onSendMessage, disa
       )}
 
       <div style={styles.inputWrapper}>
+        <button
+          type="button"
+          onClick={toggleVoiceMode}
+          style={{
+            ...styles.voiceModeBtn,
+            background: voiceMode ? 'rgba(66, 153, 225, 0.2)' : 'rgba(255,255,255,0.05)',
+            borderColor: voiceMode ? 'rgba(66, 153, 225, 0.4)' : 'rgba(255,255,255,0.1)',
+            color: voiceMode ? '#90cdf4' : 'rgba(255,255,255,0.5)'
+          }}
+          title={voiceMode ? 'Voice Mode ON – AI speaks responses' : 'Voice Mode OFF – Click to enable'}
+        >
+          {voiceMode ? '🔊 Voice ON' : '🔊 Voice OFF'}
+        </button>
         <div style={{
           ...styles.inputContainer,
           borderColor: inputFocused ? 'rgba(66, 153, 225, 0.5)' : 'rgba(255,255,255,0.12)',
@@ -310,6 +362,20 @@ const styles = {
     padding: '16px 24px 20px',
     borderTop: '1px solid rgba(255,255,255,0.06)',
     background: 'rgba(10, 22, 40, 0.8)'
+  },
+  voiceModeBtn: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '6px',
+    padding: '6px 12px',
+    borderRadius: '16px',
+    border: '1px solid',
+    fontSize: '12px',
+    fontWeight: 600,
+    fontFamily: 'Inter, sans-serif',
+    cursor: 'pointer',
+    marginBottom: '12px',
+    transition: 'all 0.2s'
   },
   inputContainer: {
     display: 'flex',

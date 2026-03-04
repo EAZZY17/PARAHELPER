@@ -122,12 +122,18 @@ export default function App() {
 
         <div style={styles.mainContent}>
           <div style={styles.chatSection}>
-            <ChatInterface
-              messages={messages}
-              isLoading={isLoading}
-              onSendMessage={sendMessage}
-              disabled={!ready}
-            />
+            <div style={styles.chatHeader}>
+              <h2 style={styles.chatTitle}>ParaHelper AI</h2>
+              <p style={styles.chatSubtitle}>Ask detailed questions for better responses.</p>
+            </div>
+            <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+              <ChatInterface
+                messages={messages}
+                isLoading={isLoading}
+                onSendMessage={sendMessage}
+                disabled={!ready}
+              />
+            </div>
           </div>
 
           <div style={styles.formSection}>
@@ -201,5 +207,22 @@ const styles = {
     flexDirection: 'column',
     minWidth: '320px',
     maxWidth: '500px'
+  },
+  chatHeader: {
+    padding: '20px 24px 16px',
+    borderBottom: '1px solid rgba(255,255,255,0.06)',
+    flexShrink: 0
+  },
+  chatTitle: {
+    fontSize: '22px',
+    fontWeight: 700,
+    color: '#fff',
+    margin: 0,
+    letterSpacing: '-0.02em'
+  },
+  chatSubtitle: {
+    fontSize: '14px',
+    color: 'rgba(255,255,255,0.6)',
+    margin: '4px 0 0 0'
   }
 };
